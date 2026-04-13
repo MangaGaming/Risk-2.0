@@ -10,9 +10,9 @@ function openDiploModal() {
   }
   // Populate territory selects
   populateTerrSelects();
-  // Reset to propose tab
-  switchDiploTab('propose');
-  selectPactType('non-agression');
+  // Reset to new tab
+  switchDiploTab('new');
+  selectPactType('peace');
   document.getElementById('diplo-modal').classList.add('active');
 }
 
@@ -24,23 +24,22 @@ function switchDiploTab(tab) {
   document.querySelectorAll('.diplo-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.diplo-tab-content').forEach(t => t.classList.remove('active'));
   // Map tab name to button index
-  const tabs = ['propose','active','history'];
+  const tabs = ['new','active','history'];
   const idx = tabs.indexOf(tab);
   if (idx !== -1) {
     document.querySelectorAll('.diplo-tab')[idx].classList.add('active');
-    document.getElementById('dtab-'+tab).classList.add('active');
+    document.getElementById('diplo-tab-'+tab).classList.add('active');
   }
 
   if (tab === 'active') renderModalPactList();
   if (tab === 'history') renderDiploHistory();
 }
 
-function selectPactType(type) {
   state.currentPactType = type;
-  ['non-agression','echange','alliance'].forEach(t => {
-    const btn = document.getElementById('ptype-'+t);
+  ['peace','territory','alliance'].forEach(t => {
+    const btn = document.getElementById('type-'+t);
     if (btn) btn.classList.toggle('selected', t === type);
-    const fields = document.getElementById('pact-fields-'+t);
+    const fields = document.getElementById('pact-form-'+t);
     if (fields) fields.style.display = t === type ? '' : 'none';
   });
   if (type === 'echange') populateTerrSelects();
@@ -101,13 +100,13 @@ function proposePact() {
   let note = '';
   let toursLeft = 2;
 
-  if (type === 'non-agression') {
-    toursLeft = parseInt(document.getElementById('pact-duration').value);
-    note = document.getElementById('pact-note-nonagg').value.trim() ||
+  if (type === 'peace') {
+    toursLeft = parseInt(document.getElementById('pact-peace-duration').value);
+    note = document.getElementById('pact-note').value.trim() ||
       `Non-agression mutuelle pendant ${toursLeft} tours.`;
   } else if (type === 'alliance') {
     toursLeft = parseInt(document.getElementById('pact-alliance-duration').value);
-    note = document.getElementById('pact-note-alliance').value.trim() ||
+    note = document.getElementById('pact-note').value.trim() ||
       `Alliance militaire pour ${toursLeft} tours.`;
   }
 
@@ -139,6 +138,17 @@ function proposePact() {
   closeDiploModal();
   updateDiploPanel();
 }
+
+function startMapPick(target) {
+  state.diploSelectTarget = target;
+  document.getElementById('diplo-modal').classList.add('selecting');
+  document.getElementById('map-select-instr').classList.add('active');
+  closeDiploModal();
+  showToast("Sélectionnez un territoire sur la carte...");
+}
+
+window.startMapPick = startMapPick;
+window.openDiploModal = openDiploModal;
 
 function executeExchange(give, recv) {
   const tGive = state.territories[give];
@@ -343,3 +353,14 @@ function decrementEmbargo() {
     state.embargoTurns[p] = Math.max(0, state.embargoTurns[p] - 1);
   }
 }
+
+window.openDiploModal = openDiploModal;
+window.closeDiploModal = closeDiploModal;
+window.switchDiploTab = switchDiploTab;
+window.selectPactType = selectPactType;
+window.proposePact = proposePact;
+window.acceptTreaty = acceptTreaty;
+window.rejectTreaty = rejectTreaty;
+window.triggerBreachFlow = triggerBreachFlow;
+window.selectSanction = selectSanction;
+window.applySanction = applySanction;

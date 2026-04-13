@@ -438,3 +438,13 @@ function checkWin(player) {
     }, 500);
   }
 }
+window.initGame = initGame;
+window.endTurn = endTurn;
+window.endDiplomacy = endDiplomacy;
+window.endReinforcement = endReinforcement;
+window.endAttack = endAttack;
+window.rollCombat = rollCombat;
+window.continueAttack = continueAttack;
+window.stopAttack = stopAttack;
+window.confirmMove = confirmMove;
+window.cancelMove = cancelMove;

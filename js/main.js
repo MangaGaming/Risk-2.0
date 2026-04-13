@@ -45,3 +45,5 @@ function startGame() {
   document.getElementById('game').classList.add('active');
   initGame();
 }
+window.showSetup = showSetup;
+window.startGame = startGame;

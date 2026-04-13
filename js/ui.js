@@ -418,3 +418,92 @@ function renderSanctionsDisplay() {
   }
   el.innerHTML = html;
 }
+
+function zoomMap(factor) {
+  mapViewState.scale *= factor;
+  mapViewState.scale = Math.max(0.2, Math.min(mapViewState.scale, 5));
+  applyMapTransform();
+}
+
+function resetMap() {
+  mapViewState.x = 0;
+  mapViewState.y = 0;
+  mapViewState.scale = 1;
+  applyMapTransform();
+}
+
+function initMapInteractions() {
+  const svg = document.getElementById('world-map');
+  if (!svg) return;
+
+  svg.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    zoomMap(delta);
+  }, { passive: false });
+
+  let isDragging = false;
+  let startX, startY;
+
+  svg.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX - mapViewState.x;
+    startY = e.clientY - mapViewState.y;
+    mapViewState.isDragged = false;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx - mapViewState.x) > 5 || Math.abs(dy - mapViewState.y) > 5) {
+      mapViewState.isDragged = true;
+    }
+    mapViewState.x = dx;
+    mapViewState.y = dy;
+    applyMapTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  svg.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      startX = e.touches[0].clientX - mapViewState.x;
+      startY = e.touches[0].clientY - mapViewState.y;
+      mapViewState.isDragged = false;
+    }
+  }, { passive: true });
+
+  svg.addEventListener('touchmove', (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    mapViewState.isDragged = true;
+    mapViewState.x = dx;
+    mapViewState.y = dy;
+    applyMapTransform();
+  }, { passive: true });
+
+  svg.addEventListener('touchend', () => {
+    isDragging = false;
+  });
+}
+
+// Global exposure
+window.initMapInteractions = initMapInteractions;
+window.zoomMap = zoomMap;
+window.resetMap = resetMap;
+window.updateHeader = updateHeader;
+window.updatePhaseUI = updatePhaseUI;
+window.showTerrInfo = showTerrInfo;
+window.openCombatModal = openCombatModal;
+window.selectAtkDice = selectAtkDice;
+window.selectDefDice = selectDefDice;
+window.openMoveModal = openMoveModal;
+window.updateMoveCount = updateMoveCount;
+window.updateDiploPanel = updateDiploPanel;
+window.renderPactListPanel = renderPactListPanel;
+window.renderSanctionsDisplay = renderSanctionsDisplay;

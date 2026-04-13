@@ -214,3 +214,12 @@ function initGameMulti() {
   updateHeader();
   startTurn();
 }
+
+window.hostGame = hostGame;
+window.joinGame = joinGame;
+window.closeMultiModal = closeMultiModal;
+window.proceedToMultiSetup = proceedToMultiSetup;
+window.showMultiModal = showMultiModal;
+window.openNegotiationModal = openNegotiationModal;
+window.acceptTreaty = acceptTreaty;
+window.rejectTreaty = rejectTreaty;
