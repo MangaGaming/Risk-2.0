@@ -1,6 +1,15 @@
 const CACHE_NAME = 'risk-v1';
 const ASSETS = [
   './index.html',
+  './style.css',
+  './js/config.js',
+  './js/state.js',
+  './js/utils.js',
+  './js/p2p.js',
+  './js/diplo.js',
+  './js/game.js',
+  './js/ui.js',
+  './js/main.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
