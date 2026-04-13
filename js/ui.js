@@ -465,8 +465,19 @@ function renderSanctionsDisplay() {
 }
 
 function zoomMap(factor) {
-  mapViewState.scale *= factor;
-  mapViewState.scale = Math.max(0.2, Math.min(mapViewState.scale, 5));
+  const oldScale = mapViewState.scale;
+  let newScale = oldScale * factor;
+  newScale = Math.max(0.2, Math.min(newScale, 5));
+  if (newScale === oldScale) return;
+
+  // Centre logique du viewBox (-80 -50 1100 580 -> cx approx 470, cy approx 240)
+  const cx = 470;
+  const cy = 240;
+  
+  mapViewState.x += cx * (oldScale - newScale);
+  mapViewState.y += cy * (oldScale - newScale);
+  mapViewState.scale = newScale;
+
   applyMapTransform();
 }
 
