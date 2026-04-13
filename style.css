@@ -1749,3 +1749,125 @@ body {
 .pip.empty { visibility: hidden; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ===========================
+   MOBILE / RESPONSIVE
+=========================== */
+@media screen and (max-width: 800px) {
+  #main {
+    flex-direction: column;
+  }
+  
+  #panel {
+    width: 100%;
+    height: 35vh;
+    border-top: 2px solid var(--border-gold);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  
+  #map-container {
+    flex: 1;
+    min-height: 40vh;
+  }
+  
+  /* Header adjustments */
+  .header-logo {
+    font-size: 1.2rem;
+    letter-spacing: 0.1em;
+  }
+  
+  #header {
+    padding: 0 0.4rem;
+    min-height: 45px;
+  }
+  
+  .stat-card {
+    padding: 0.2rem 0.4rem;
+  }
+  .stat-card-val {
+    font-size: 1rem;
+  }
+  .stat-card-name {
+    font-size: 0.5rem;
+  }
+  .turn-player {
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+  .turn-phase {
+    font-size: 0.55rem;
+  }
+  .turn-banner {
+    padding: 0.2rem 0.5rem;
+    gap: 0.4rem;
+  }
+  
+  /* Intro adjustments */
+  .intro-title {
+    font-size: 3.5rem;
+  }
+  .intro-subtitle {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    text-align: center;
+  }
+  .intro-btn {
+    padding: 0.8rem 1.2rem;
+    font-size: 0.75rem;
+    width: 100%;
+  }
+  .intro-divider {
+    width: 250px;
+  }
+  
+  /* Setup */
+  .player-setup {
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .player-card {
+    min-width: 220px;
+    padding: 1rem;
+  }
+  .start-btn {
+    padding: 0.8rem 1.8rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Modals */
+  .modal {
+    width: 95%;
+  }
+  .modal-body {
+    padding: 1rem;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .combat-vs {
+    flex-direction: column;
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .combat-side { 
+    width: 100%; 
+  }
+  .combat-vs-icon {
+    margin: 5px 0;
+    transform: rotate(90deg);
+  }
+  
+  .sanction-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-controls {
+    bottom: 10px;
+    right: 10px;
+  }
+}
