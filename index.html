@@ -7,6 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#5c3317">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
   :root {
     --wood-dark: #2d1b0e;
@@ -1567,9 +1568,31 @@
     margin: 0.5rem 0;
   }
   .exchange-arrow { font-size: 1.2rem; color: var(--gold-dark); text-align: center; }
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: linear-gradient(135deg, #d4a017 0%, #9a7210 100%);
+    color: #1a0a00;
+    padding: 0.8rem 2rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    border-radius: 4px;
+    z-index: 9999;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  #toast.active { transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
+<div id="toast">Message</div>
 
 <!-- ===== INTRO ===== -->
 <div id="intro" class="screen active">
@@ -1595,9 +1618,14 @@
 
   <br>
 
-  <button class="intro-btn" id="btn-start-intro" onclick="showSetup()">
-    Commencer la Partie
-  </button>
+  <div style="display:flex; flex-direction:column; gap:0.5rem; width: 380px;">
+    <button class="intro-btn" id="btn-start-intro" onclick="showSetup()">
+      ⚔ &nbsp; Partie Locale
+    </button>
+    <button class="intro-btn" id="btn-multi-intro" onclick="showMultiModal()" style="font-size: 0.8rem; background: linear-gradient(180deg, #1a3320 0%, #155228 50%, #0d3618 100%); border-top-color: #2a4a30;">
+      🤝 &nbsp; Partie en Ligne (P2P)
+    </button>
+  </div>
 </div>
 
 <!-- ===== SETUP ===== -->
@@ -1999,6 +2027,47 @@
   <button class="start-btn" onclick="location.reload()">⚔ &nbsp; Nouvelle Partie</button>
 </div>
 
+<!-- ===== MULTIPLAYER MODAL ===== -->
+<div class="modal-overlay" id="multi-modal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-header-icon">🤝</div>
+      <h2>Mode Multijoueur</h2>
+    </div>
+    <div class="modal-body">
+      <div id="multi-status" style="font-size:0.85rem; color:var(--parchment-shadow); margin-bottom:1rem; font-style:italic;">
+        Connectez-vous via PeerJS sans serveur central.
+      </div>
+
+      <div id="multi-initial" style="display:flex; flex-direction:column; gap:0.8rem;">
+        <button class="modal-btn primary" onclick="hostGame()">🏠 Héberger une partie</button>
+        <div style="font-family:'Cinzel',serif; font-size:0.6rem; color:var(--parchment-shadow);">OU</div>
+        <div style="display:flex; gap:0.5rem;">
+          <input type="text" id="join-id" placeholder="ID de l'hôte" style="flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--border-gold); color:white; padding:0.5rem; font-family:'Cinzel',serif; font-size:0.8rem; text-align:center;">
+          <button class="modal-btn" onclick="joinGame()">🤝 Rejoindre</button>
+        </div>
+      </div>
+
+      <div id="multi-wait" style="display:none; text-align:center; padding:1rem;">
+        <div style="font-family:'Cinzel',serif; font-size:0.75rem; color:var(--text-dark); margin-bottom:0.8rem;">VOTRE ID DE CONNEXION :</div>
+        <div id="my-id-display" style="font-family:'Cinzel',serif; font-size:2rem; letter-spacing:0.2em; color:var(--gold); margin-bottom:1rem; background:rgba(0,0,0,0.2); padding:0.5rem; border:1px dashed var(--gold-dark);">----</div>
+        <div style="font-size:0.75rem; color:var(--parchment-shadow);">Partagez ce code avec votre adversaire.</div>
+      </div>
+
+      <div id="multi-connected" style="display:none; text-align:center; padding:1rem;">
+        <div style="font-family:'Cinzel',serif; font-size:1rem; color:var(--gold); margin-bottom:0.5rem;">CONNEXION ÉTABLIE !</div>
+        <div id="opp-name-display" style="font-size:0.85rem; color:var(--text-dark);">Adversaire prêt à la bataille.</div>
+        <br>
+        <button class="modal-btn primary" id="btn-multi-setup" onclick="proceedToMultiSetup()" style="width:100%;">⚙ Préparer les armées</button>
+      </div>
+
+      <div class="modal-btns" style="margin-top:1.5rem;">
+        <button class="modal-btn" onclick="closeMultiModal()">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // RISK DATA — 42 territories, 6 continents
@@ -2140,6 +2209,215 @@ let state = {
 };
 
 // ============================================================
+// MULTIPLAYER STATE & LOGIC
+// ============================================================
+
+let multi = {
+  peer: null,
+  conn: null,
+  active: false,
+  isHost: false,
+  localPlayerIndex: 0, // 0 for Host (Red), 1 for Joined (Blue)
+  remotePlayerName: 'Adversaire'
+};
+
+function showMultiModal() {
+  document.getElementById('multi-modal').classList.add('active');
+}
+
+function closeMultiModal() {
+  document.getElementById('multi-modal').classList.remove('active');
+  if (multi.peer && !multi.active) {
+    multi.peer.destroy();
+    multi.peer = null;
+  }
+}
+
+function hostGame() {
+  document.getElementById('multi-initial').style.display = 'none';
+  document.getElementById('multi-wait').style.display = 'block';
+  document.getElementById('multi-status').textContent = 'Initialisation PeerJS...';
+
+  // Générer un ID court (4 chars)
+  const shortId = Math.random().toString(36).substring(2, 6).toUpperCase();
+  
+  multi.peer = new Peer(shortId);
+  multi.isHost = true;
+  multi.localPlayerIndex = 0;
+
+  multi.peer.on('open', (id) => {
+    document.getElementById('my-id-display').textContent = id;
+    document.getElementById('multi-status').textContent = 'En attente d\'un adversaire...';
+  });
+
+  multi.peer.on('connection', (connection) => {
+    multi.conn = connection;
+    setupConnection();
+  });
+
+  multi.peer.on('error', (err) => {
+    console.error(err);
+    alert('Erreur PeerJS: ' + err.type);
+    location.reload();
+  });
+}
+
+function joinGame() {
+  const hostId = document.getElementById('join-id').value.trim().toUpperCase();
+  if (!hostId) return;
+
+  document.getElementById('multi-initial').style.display = 'none';
+  document.getElementById('multi-status').textContent = 'Connexion à ' + hostId + '...';
+
+  multi.peer = new Peer();
+  multi.isHost = false;
+  multi.localPlayerIndex = 1;
+
+  multi.peer.on('open', () => {
+    multi.conn = multi.peer.connect(hostId);
+    setupConnection();
+  });
+
+  multi.peer.on('error', (err) => {
+    console.error(err);
+    alert('Connexion impossible. Vérifiez l\'ID.');
+    location.reload();
+  });
+}
+
+function setupConnection() {
+  multi.conn.on('open', () => {
+    multi.active = true;
+    document.getElementById('multi-wait').style.display = 'none';
+    document.getElementById('multi-connected').style.display = 'block';
+    document.getElementById('multi-status').textContent = 'Connecté !';
+    
+    // Envoyer son nom
+    const myName = document.getElementById(multi.localPlayerIndex === 0 ? 'p1-name' : 'p2-name').value;
+    broadcast({ type: 'HANDSHAKE', name: myName });
+    
+    if (!multi.isHost) {
+      document.getElementById('btn-multi-setup').style.display = 'none';
+      document.getElementById('opp-name-display').textContent = 'Attente du lancement par l\'Hôte...';
+    }
+  });
+
+  multi.conn.on('data', (data) => {
+    handleRemoteMessage(data);
+  });
+
+  multi.conn.on('close', () => {
+    alert('Connexion perdue avec l\'adversaire.');
+    location.reload();
+  });
+}
+
+function broadcast(data) {
+  if (multi.active && multi.conn) {
+    multi.conn.send(data);
+  }
+}
+
+function handleRemoteMessage(msg) {
+  console.log('Remote Message:', msg);
+  
+  switch(msg.type) {
+    case 'HANDSHAKE':
+      multi.remotePlayerName = msg.name;
+      document.getElementById('opp-name-display').textContent = 'Adversaire : ' + msg.name;
+      break;
+    case 'START_GAME':
+      state.territories = msg.territories;
+      state.players[0].name = msg.p1Name;
+      state.players[1].name = msg.p2Name;
+      document.getElementById('intro').classList.remove('active');
+      document.getElementById('multi-modal').classList.remove('active');
+      document.getElementById('game').classList.add('active');
+      initGameMulti();
+      break;
+    case 'REINFORCE':
+      const terr = state.territories[msg.territory];
+      terr.armies++;
+      state.reinforcements--;
+      addLog(`${state.players[state.currentPlayer].name} place 1 armée sur ${msg.territory}.`, 'p' + (state.currentPlayer + 1));
+      renderMap();
+      updatePhaseUI();
+      break;
+    case 'END_PHASE':
+      if (msg.phase === 'reinf') endReinforcement(true);
+      if (msg.phase === 'attack') endAttack(true);
+      if (msg.phase === 'diplo') endDiplo(true);
+      break;
+    case 'END_TURN':
+      endTurn(true);
+      break;
+    case 'ATTACK_SELECT':
+      state.attackFrom = msg.from;
+      state.selectedTerritory = msg.from;
+      showTerrInfo(msg.from);
+      renderMap();
+      break;
+    case 'ATTACK_TARGET':
+      state.attackTo = msg.to;
+      openCombatModal(true);
+      break;
+    case 'COMBAT_ROLL':
+      resolveCombat(msg.atkRolls, msg.defRolls);
+      break;
+    case 'CONTINUE_ATTACK':
+      continueAttack(true);
+      break;
+    case 'STOP_ATTACK':
+      stopAttack(true);
+      break;
+    case 'MOVE_SELECT':
+      state.moveFrom = msg.from;
+      renderMap();
+      break;
+    case 'MOVE_CONFIRM':
+      state.moveTo = msg.to;
+      executeMove(msg.count, true);
+      break;
+    case 'DIPLO_PACT':
+      state.pacts.push(msg.pact);
+      addDiploHistory(`📜 Pacte scellé : ${msg.pact.note}`);
+      addLog(`🤝 Pacte signé : ${msg.pact.note}`, 'system');
+      updateDiploPanel();
+      break;
+    case 'DIPLO_BREACH':
+      applySanctionLogic(msg.pactId, msg.sanction, true);
+      break;
+    case 'DIPLO_EXCHANGE':
+      executeExchange(msg.give, msg.recv, true);
+      break;
+    case 'SYNC_RANDOM':
+      if (msg.target === 'vengeance') {
+        state.territories[msg.territory].armies += msg.amount;
+        renderMap();
+      }
+      break;
+  }
+}
+
+function handleRemoteBreach(pactId, sanction) {
+  applySanctionLogic(pactId, sanction);
+  updateDiploPanel();
+}
+
+function proceedToMultiSetup() {
+  // L'hôte prépare le setup initial
+  document.getElementById('multi-modal').classList.remove('active');
+  showSetup();
+}
+
+function initGameMulti() {
+  buildLegend();
+  renderMap();
+  updateHeader();
+  startTurn();
+}
+
+// ============================================================
 // UTILITY
 // ============================================================
 
@@ -2155,14 +2433,20 @@ function getContinentColor(name) {
   return cont ? CONTINENTS[cont].color : '#555';
 }
 
-// Blend continent color with player color for owned territories
 function getTerritoryFill(name) {
   const terr = state.territories[name];
   if (terr.owner === null) return '#1a2a1a';
   const pColor = state.players[terr.owner].color;
-  const cColor = getContinentColor(name);
-  // Return player color blended slightly with continent color
   return pColor;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('active');
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => t.classList.remove('active'), 3000);
 }
 
 // ============================================================
@@ -2203,6 +2487,22 @@ function showSetup() {
 function startGame() {
   state.players[0].name = document.getElementById('p1-name').value || 'Joueur Rouge';
   state.players[1].name = document.getElementById('p2-name').value || 'Joueur Bleu';
+  
+  if (multi.active && multi.isHost) {
+    // L'hôte prépare tout et envoie à l'invité
+    initGame(true); 
+    broadcast({ 
+      type: 'START_GAME', 
+      territories: state.territories,
+      p1Name: state.players[0].name,
+      p2Name: state.players[1].name
+    });
+    document.getElementById('setup').classList.remove('active');
+    document.getElementById('game').classList.add('active');
+    initGameMulti();
+    return;
+  }
+
   document.getElementById('setup').classList.remove('active');
   document.getElementById('game').classList.add('active');
   initGame();
@@ -2212,7 +2512,7 @@ function startGame() {
 // INIT
 // ============================================================
 
-function initGame() {
+function initGame(isMultiHost = false) {
   const allTerr = Object.keys(POSITIONS);
   allTerr.forEach(name => { state.territories[name] = { owner: null, armies: 0 }; });
 
@@ -2233,10 +2533,12 @@ function initGame() {
     }
   });
 
-  buildLegend();
-  renderMap();
-  updateHeader();
-  startTurn();
+  if (!isMultiHost) {
+    buildLegend();
+    renderMap();
+    updateHeader();
+    startTurn();
+  }
 }
 
 // ============================================================
@@ -2502,15 +2804,19 @@ function startTurn() {
   // Apply vengeance queue (give armies to victim)
   state.vengeanceQueue = state.vengeanceQueue.filter(v => {
     if (v.victim === p) {
-      // Distribute vengeance armies
-      const myTerrs = Object.entries(state.territories).filter(([,t]) => t.owner === p);
-      if (myTerrs.length > 0) {
-        const rand = myTerrs[Math.floor(Math.random() * myTerrs.length)][0];
-        state.territories[rand].armies += v.amount;
-        addDiploHistory(`🛡 Prime de vengeance : ${state.players[p].name} reçoit +${v.amount} armée(s) sur ${rand}.`);
-        showToast(`⚔ ${state.players[p].name} reçoit +${v.amount} armée(s) (Prime à la Vengeance) !`);
-        addLog(`${state.players[p].name} reçoit +${v.amount} armées (vengeance).`, 'system');
-        renderMap();
+      if (!multi.active || isMyTurn()) {
+        const myTerrs = Object.entries(state.territories).filter(([,t]) => t.owner === p);
+        if (myTerrs.length > 0) {
+          const rand = myTerrs[Math.floor(Math.random() * myTerrs.length)][0];
+          state.territories[rand].armies += v.amount;
+          addDiploHistory(`🛡 Prime de vengeance : ${state.players[p].name} reçoit +${v.amount} armée(s) sur ${rand}.`);
+          showToast(`⚔ ${state.players[p].name} reçoit +${v.amount} armée(s) (Prime à la Vengeance) !`);
+          addLog(`${state.players[p].name} reçoit +${v.amount} armées (vengeance).`, 'system');
+          
+          if (multi.active) broadcast({ type: 'SYNC_RANDOM', target: 'vengeance', territory: rand, amount: v.amount });
+          
+          renderMap();
+        }
       }
       return false; // remove from queue
     }
@@ -2617,10 +2923,23 @@ function updatePhaseUI() {
 }
 
 // ============================================================
+// MULTIPLAYER UTILS
+// ============================================================
+
+function isMyTurn() {
+  if (!multi.active) return true;
+  return state.currentPlayer === multi.localPlayerIndex;
+}
+
+// ============================================================
 // TERRITORY CLICK
 // ============================================================
 
 function onTerritoryClick(name) {
+  if (!isMyTurn()) {
+    showToast("Ce n'est pas votre tour !");
+    return;
+  }
   const terr = state.territories[name];
   const p = state.currentPlayer;
 
@@ -2629,6 +2948,9 @@ function onTerritoryClick(name) {
       terr.armies++;
       state.reinforcements--;
       addLog(`${state.players[p].name} place 1 armée sur ${name}. (${state.reinforcements} restants)`, 'p' + (p + 1));
+      
+      broadcast({ type: 'REINFORCE', territory: name });
+      
       renderMap();
       updatePhaseUI();
     }
@@ -2641,6 +2963,9 @@ function onTerritoryClick(name) {
         state.attackFrom = name;
         state.selectedTerritory = name;
         showTerrInfo(name);
+        
+        broadcast({ type: 'ATTACK_SELECT', from: name });
+        
         document.getElementById('attack-info').innerHTML =
           `<strong style="color:${state.players[p].lightColor}">${name}</strong> sélectionné.<br>Cliquez sur un territoire ennemi adjacent.`;
         renderMap();
@@ -2649,18 +2974,21 @@ function onTerritoryClick(name) {
       if (name === state.attackFrom) {
         state.attackFrom = null;
         state.selectedTerritory = null;
-        document.getElementById('attack-info').innerHTML = 'Sélectionnez un de vos territoires (2+ armées) puis un territoire ennemi adjacent.';
+        broadcast({ type: 'ATTACK_SELECT', from: null });
+        document.getElementById('attack-info').innerHTML = 'Sélectionnez un de vos territoires (3+ armées) puis un territoire ennemi adjacent.';
         renderMap();
         return;
       }
       const adj = ADJACENCY[state.attackFrom] || [];
       if (terr.owner !== p && adj.includes(name)) {
         state.attackTo = name;
+        broadcast({ type: 'ATTACK_TARGET', to: name });
         openCombatModal();
       } else if (terr.owner === p && terr.armies >= 3) {
         state.attackFrom = name;
         state.selectedTerritory = name;
         showTerrInfo(name);
+        broadcast({ type: 'ATTACK_SELECT', from: name });
         renderMap();
       }
     }
@@ -2671,6 +2999,7 @@ function onTerritoryClick(name) {
     if (!state.moveFrom) {
       if (terr.owner === p && terr.armies >= 2) {
         state.moveFrom = name;
+        broadcast({ type: 'MOVE_SELECT', from: name });
         document.getElementById('move-info').innerHTML =
           `<strong style="color:${state.players[p].lightColor}">${name}</strong> sélectionné. Cliquez sur un territoire voisin.`;
         renderMap();
@@ -2678,10 +3007,20 @@ function onTerritoryClick(name) {
     } else {
       if (name === state.moveFrom) {
         state.moveFrom = null;
+        broadcast({ type: 'MOVE_SELECT', from: null });
         document.getElementById('move-info').innerHTML = '';
         renderMap();
         return;
       }
+      const adj = ADJACENCY[state.moveFrom] || [];
+      if (terr.owner === p && adj.includes(name)) {
+        state.moveTo = name;
+        openMoveModal();
+      }
+    }
+    return;
+  }
+}
       const adj = ADJACENCY[state.moveFrom] || [];
       if (terr.owner === p && adj.includes(name)) {
         state.moveTo = name;
@@ -2841,6 +3180,7 @@ function populateTerrSelects() {
 }
 
 function proposePact() {
+  if (!isMyTurn()) { showToast("C'est le tour de l'adversaire !"); return; }
   const p = state.currentPlayer;
   const opp = 1 - p;
   const type = state.currentPactType;
@@ -2856,16 +3196,10 @@ function proposePact() {
     const give = document.getElementById('pact-give-terr').value;
     const recv = document.getElementById('pact-recv-terr').value;
     if (!give || !recv) { showToast('⚠ Sélectionnez les deux territoires !'); return; }
-    // Execute the exchange immediately
-    state.territories[give].owner = opp;
-    state.territories[recv].owner = p;
-    const extraNote = document.getElementById('pact-note-echange').value.trim();
-    note = `Échange : ${give} ↔ ${recv}.${extraNote ? ' ' + extraNote : ''}`;
-    toursLeft = extraNote ? 2 : 0; // pact note lasts 2 turns if conditions, else just record
-    addLog(`🔄 Échange territorial : ${state.players[p].name} cède ${give}, reçoit ${recv}.`, 'system');
-    addDiploHistory(`🔄 Échange : ${give} (→${state.players[opp].name}) contre ${recv} (→${state.players[p].name}).`);
-    renderMap(); updateHeader();
-    showToast(`🔄 Échange conclu : ${give} ↔ ${recv} !`);
+    
+    broadcast({ type: 'DIPLO_EXCHANGE', give, recv });
+    executeExchange(give, recv);
+    
     closeDiploModal();
     updateDiploPanel();
     return;
@@ -2883,6 +3217,7 @@ function proposePact() {
     broken: false, brokenBy: null
   };
   state.pacts.push(pact);
+  broadcast({ type: 'DIPLO_PACT', pact });
 
   addDiploHistory(`📜 Pacte "${pact.type}" scellé (tour ${state.globalTurn}) : ${note}`);
   addLog(`🤝 Pacte signé : ${state.players[p].name} & ${state.players[opp].name} — ${note}`, 'system');
@@ -2894,6 +3229,23 @@ function proposePact() {
 
   closeDiploModal();
   updateDiploPanel();
+}
+
+function executeExchange(give, recv, remote = false) {
+  const p = state.currentPlayer;
+  const opp = 1 - p;
+  
+  // Si c'est distant, les rôles sont inversés par rapport au sender
+  const realP = remote ? opp : p;
+  const realOpp = remote ? p : opp;
+
+  state.territories[give].owner = realOpp;
+  state.territories[recv].owner = realP;
+  
+  addLog(`🔄 Échange territorial : ${state.players[realP].name} cède ${give}, reçoit ${recv}.`, 'system');
+  addDiploHistory(`🔄 Échange : ${give} (→${state.players[realOpp].name}) contre ${recv} (→${state.players[realP].name}).`);
+  renderMap(); updateHeader();
+  showToast(`🔄 Échange conclu : ${give} ↔ ${recv} !`);
 }
 
 function renderModalPactList() {
@@ -2958,35 +3310,41 @@ function selectSanction(type) {
 
 function applySanction() {
   const pactId = state.pendingBreachPactId;
-  const pact = state.pacts.find(pk => pk.id === pactId);
-  if (!pact) { dismissSanction(); return; }
-
-  const breacher = state.currentPlayer;
-  const victim = 1 - breacher;
-
-  // Mark pact as broken
-  pact.broken = true;
-  pact.brokenBy = breacher;
-
   const sanctionType = state.currentSanction;
-  let sanctionDesc = '';
+  if (!pactId) { dismissSanction(); return; }
 
-  if (sanctionType === 'malus') {
-    state.malusPending[breacher] += 3;
-    sanctionDesc = `⚔ Perte d'Honneur : ${state.players[breacher].name} perdra 3 renforts à son prochain tour.`;
-    showToast(`⚔ Perte d'Honneur infligée à ${state.players[breacher].name} : -3 renforts !`);
-  } else if (sanctionType === 'embargo') {
-    state.embargoTurns[breacher] += 3;
-    sanctionDesc = `🚫 Embargo : ${state.players[breacher].name} ne peut plus négocier pendant 3 tours.`;
-    showToast(`🚫 Embargo diplomatique : ${state.players[breacher].name} est isolé pour 3 tours !`);
-  } else if (sanctionType === 'vengeance') {
-    // Give 2 armies to victim immediately at start of their next turn
-    state.vengeanceQueue.push({ victim, amount: 2 });
-    sanctionDesc = `🛡 Prime à la Vengeance : ${state.players[victim].name} reçoit +2 armées dès son prochain tour.`;
-    showToast(`🛡 Prime à la Vengeance : +2 armées pour ${state.players[victim].name} !`);
+  broadcast({ type: 'DIPLO_BREACH', pactId, sanction: sanctionType });
+  applySanctionLogic(pactId, sanctionType);
+  dismissSanction();
+}
+
+function applySanctionLogic(pactId, s, remote = false) {
+  const pact = state.pacts.find(pk => pk.id === pactId);
+  if (!pact) return;
+
+  const traitorIdx = remote ? state.currentPlayer : (1 - state.currentPlayer);
+  const victimIdx = 1 - traitorIdx;
+
+  pact.broken = true;
+  pact.brokenBy = traitorIdx;
+  
+  let sanctionDesc = "";
+
+  if (s === 'malus') {
+    state.malusPending[traitorIdx] += 3;
+    sanctionDesc = `Malus de -3 renforts pour ${state.players[traitorIdx].name}.`;
+    showToast(`⚔ Sanction : -3 renforts pour ${state.players[traitorIdx].name} !`);
+  } else if (s === 'embargo') {
+    state.embargoTurns[traitorIdx] += 3;
+    sanctionDesc = `Embargo diplomatique de 3 tours pour ${state.players[traitorIdx].name}.`;
+    showToast(`🚫 Sanction : Embargo sur ${state.players[traitorIdx].name} !`);
+  } else if (s === 'vengeance') {
+    state.vengeanceQueue.push({ victim: victimIdx, amount: 2 });
+    sanctionDesc = `Droit à la vengeance (+2 armées) pour ${state.players[victimIdx].name}.`;
+    showToast(`🛡 Sanction : Vengeance pour ${state.players[victimIdx].name} !`);
   }
 
-  addDiploHistory(`💔 Pacte rompu par ${state.players[breacher].name}. Sanction : ${sanctionDesc}`);
+  addDiploHistory(`💔 Pacte rompu par ${state.players[traitorIdx].name}. Sanction : ${sanctionDesc}`);
   addLog(`💔 Trahison ! ${sanctionDesc}`, 'system');
 
   document.getElementById('sanction-modal').classList.remove('active');
@@ -2996,7 +3354,6 @@ function applySanction() {
 }
 
 function dismissSanction() {
-  // Pardon — pact still broken but no sanction
   const pactId = state.pendingBreachPactId;
   const pact = state.pacts.find(pk => pk.id === pactId);
   if (pact) { pact.broken = true; pact.brokenBy = state.currentPlayer; }
@@ -3029,12 +3386,16 @@ function decrementEmbargo() {
 // REINFORCEMENT PHASE
 // ============================================================
 
-function endReinforcement() {
-  if (state.reinforcements > 0) return;
+function endReinforcement(remote = false) {
+  if (state.phase !== 'reinf') return;
+  if (state.reinforcements > 0 && !remote) { showToast("Placez tous vos renforts !"); return; }
+  if (!isMyTurn() && !remote) { showToast("Ce n'est pas votre tour !"); return; }
+
+  if (!remote) broadcast({ type: 'END_PHASE', phase: 'reinf' });
   state.phase = 'attack';
-  state.attackFrom = null;
-  updatePhaseUI();
+  state.selectedTerritory = null;
   renderMap();
+  updatePhaseUI();
   addLog('Phase d\'attaque commencée.', 'system');
 }
 
@@ -3105,7 +3466,15 @@ function rollDie() { return Math.floor(Math.random() * 6) + 1; }
 function rollCombat() {
   const atkRolls = Array.from({ length: state.atkDice }, rollDie).sort((a, b) => b - a);
   const defRolls = Array.from({ length: state.defDice }, rollDie).sort((a, b) => b - a);
+  
+  if (multi.active) {
+    broadcast({ type: 'COMBAT_ROLL', atkRolls, defRolls });
+  }
+  
+  resolveCombat(atkRolls, defRolls);
+}
 
+function resolveCombat(atkRolls, defRolls) {
   const atk = state.territories[state.attackFrom];
   const def = state.territories[state.attackTo];
 
@@ -3199,14 +3568,16 @@ function rollCombat() {
   document.getElementById('def-dice-btns').innerHTML = defBtns2;
 }
 
-function continueAttack() {
+function continueAttack(remote = false) {
+  if (!remote) broadcast({ type: 'CONTINUE_ATTACK' });
   document.getElementById('btn-roll').style.display = '';
   document.getElementById('btn-continue-atk').style.display = 'none';
   document.getElementById('btn-stop-atk').style.display = 'none';
   document.getElementById('combat-result').textContent = '';
 }
 
-function stopAttack() {
+function stopAttack(remote = false) {
+  if (!remote) broadcast({ type: 'STOP_ATTACK' });
   document.getElementById('combat-modal').classList.remove('active');
   state.attackFrom = null;
   state.attackTo = null;
@@ -3245,12 +3616,17 @@ function updateMoveCount(val) {
 
 function confirmMove() {
   const n = parseInt(document.getElementById('move-slider').value);
+  broadcast({ type: 'MOVE_CONFIRM', to: state.moveTo, count: n });
+  executeMove(n);
+  document.getElementById('move-modal').classList.remove('active');
+  endTurn();
+}
+
+function executeMove(n, remote = false) {
   state.territories[state.moveFrom].armies -= n;
   state.territories[state.moveTo].armies += n;
-  addLog(`${state.players[state.currentPlayer].name} déplace ${n} armée(s) de ${state.moveFrom} vers ${state.moveTo}.`, 'p' + (state.currentPlayer + 1));
-  document.getElementById('move-modal').classList.remove('active');
+  if (!remote) addLog(`${state.players[state.currentPlayer].name} déplace ${n} armée(s) de ${state.moveFrom} vers ${state.moveTo}.`, 'p' + (state.currentPlayer + 1));
   renderMap();
-  endTurn();
 }
 
 function cancelMove() {
@@ -3261,7 +3637,9 @@ function cancelMove() {
   renderMap();
 }
 
-function endTurn() {
+function endTurn(remote = false) {
+  if (!isMyTurn() && !remote) { showToast("Ce n'est pas votre tour !"); return; }
+  if (!remote) broadcast({ type: 'END_TURN' });
   decrementEmbargo();
   state.currentPlayer = 1 - state.currentPlayer;
   document.getElementById('section-terr-info').style.display = 'none';
