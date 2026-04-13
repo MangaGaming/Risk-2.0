@@ -3021,15 +3021,6 @@ function onTerritoryClick(name) {
     return;
   }
 }
-      const adj = ADJACENCY[state.moveFrom] || [];
-      if (terr.owner === p && adj.includes(name)) {
-        state.moveTo = name;
-        openMoveModal();
-      }
-    }
-    return;
-  }
-}
 
 function showTerrInfo(name) {
   const terr = state.territories[name];
@@ -3363,16 +3354,7 @@ function dismissSanction() {
   updateDiploPanel();
 }
 
-// ---- Toast notification ----
-function showToast(msg) {
-  const existing = document.querySelector('.diplo-toast');
-  if (existing) existing.remove();
-  const toast = document.createElement('div');
-  toast.className = 'diplo-toast';
-  toast.textContent = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3100);
-}
+
 
 // Decrement embargo on turn end
 function decrementEmbargo() {
