@@ -126,16 +126,31 @@ function onTerritoryClick(name) {
   if (mapViewState.isDragged) return;
 
   if (state.diploSelectTarget) {
-    const selectId = state.diploSelectTarget === 'give' ? 'pact-give-terr' : 'pact-recv-terr';
+    const isGive = state.diploSelectTarget === 'give';
+    const selectId = isGive ? 'pact-give-terr' : 'pact-recv-terr';
     const el = document.getElementById(selectId);
+    let valid = false;
+    
     if (el) {
-      el.value = name;
-      el.dispatchEvent(new Event('change'));
+      if (Array.from(el.options).some(opt => opt.value === name)) {
+        el.value = name;
+        el.dispatchEvent(new Event('change'));
+        valid = true;
+      }
+    }
+    
+    if (valid) {
+      showToast("Territoire sélectionné !");
+    } else {
+      showToast(isGive ? "Ce n'est pas un de vos territoires !" : "Ce n'est pas un territoire adverse éligible !");
     }
     
     state.diploSelectTarget = null;
     document.getElementById('diplo-modal').classList.remove('selecting');
     document.getElementById('map-select-instr').classList.remove('active');
+    
+    // Re-open the modal seamlessly
+    document.getElementById('diplo-modal').classList.add('active');
     return;
   }
 
