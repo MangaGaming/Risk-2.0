@@ -111,6 +111,17 @@ function endTurn(remote = false) {
   startTurn();
 }
 
+function endDiplomacy(remote = false) {
+  if (state.phase !== 'diplo') return;
+  if (!isMyTurn() && !remote) { showToast("Ce n'est pas votre tour !"); return; }
+
+  if (!remote) broadcast({ type: 'END_PHASE', phase: 'diplo' });
+  state.phase = 'reinf';
+  renderMap();
+  updatePhaseUI();
+  addLog('Phase de renforts commencée.', 'system');
+}
+
 function onTerritoryClick(name) {
   if (mapViewState.isDragged) return;
 
@@ -302,9 +313,15 @@ function resolveCombat(atkRolls, defRolls) {
     const btnRoll = document.getElementById('btn-roll');
     const btnContinue = document.getElementById('btn-continue-atk');
     const btnStop = document.getElementById('btn-stop-atk');
-    if (btnRoll) btnRoll.style.display = 'none';
-    if (btnContinue) btnContinue.style.display = 'none';
-    if (btnStop) btnStop.style.display = '';
+    if (isMyTurn()) {
+      if (btnRoll) btnRoll.style.display = 'none';
+      if (btnContinue) btnContinue.style.display = 'none';
+      if (btnStop) btnStop.style.display = '';
+    } else {
+      if (btnRoll) btnRoll.style.display = 'none';
+      if (btnContinue) btnContinue.style.display = 'none';
+      if (btnStop) btnStop.style.display = 'none';
+    }
 
     const diceDisplay = document.getElementById('dice-display');
     if (diceDisplay) {
@@ -333,9 +350,15 @@ function resolveCombat(atkRolls, defRolls) {
   renderMap();
   document.getElementById('atk-terr').textContent = `${state.attackFrom} (${atk.armies} armées)`;
   document.getElementById('def-terr').textContent = `${state.attackTo} (${def.armies} armées)`;
-  document.getElementById('btn-roll').style.display = 'none';
-  document.getElementById('btn-continue-atk').style.display = '';
-  document.getElementById('btn-stop-atk').style.display = '';
+  if (isMyTurn()) {
+    document.getElementById('btn-roll').style.display = 'none';
+    document.getElementById('btn-continue-atk').style.display = '';
+    document.getElementById('btn-stop-atk').style.display = '';
+  } else {
+    document.getElementById('btn-roll').style.display = 'none';
+    document.getElementById('btn-continue-atk').style.display = 'none';
+    document.getElementById('btn-stop-atk').style.display = 'none';
+  }
 
   const maxAtk2 = Math.min(3, atk.armies - 1);
   state.atkDice = Math.max(2, Math.min(state.atkDice, maxAtk2));
@@ -376,6 +399,13 @@ function confirmMove() {
   executeMove(n);
   document.getElementById('move-modal').classList.remove('active');
   endTurn();
+}
+
+function cancelMove() {
+  document.getElementById('move-modal').classList.remove('active');
+  state.moveFrom = null;
+  state.moveTo = null;
+  renderMap();
 }
 
 function executeMove(n, remote = false) {

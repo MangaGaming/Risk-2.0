@@ -258,6 +258,13 @@ function updatePhaseUI() {
   if (secAttack) secAttack.style.display = state.phase === 'attack'  ? '' : 'none';
   if (secMove) secMove.style.display   = state.phase === 'move'    ? '' : 'none';
 
+  if (state.phase === 'diplo') {
+    const btnOpenDiplo = document.getElementById('btn-open-diplo');
+    const btnEndDiplo = document.getElementById('btn-end-diplo');
+    if (btnOpenDiplo) btnOpenDiplo.disabled = !isMyTurn() || state.embargoTurns[state.currentPlayer] > 0;
+    if (btnEndDiplo) btnEndDiplo.disabled = !isMyTurn();
+  }
+
   if (state.phase === 'reinf') {
     const badge = document.getElementById('reinf-badge');
     if (badge) {
@@ -265,7 +272,7 @@ function updatePhaseUI() {
       badge.className = 'reinf-token p' + (state.currentPlayer + 1);
     }
     const btnEndReinf = document.getElementById('btn-end-reinf');
-    if (btnEndReinf) btnEndReinf.disabled = state.reinforcements > 0;
+    if (btnEndReinf) btnEndReinf.disabled = state.reinforcements > 0 || !isMyTurn();
   }
 
   updateHeader();

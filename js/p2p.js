@@ -127,7 +127,7 @@ function handleRemoteMessage(msg) {
     case 'END_PHASE':
       if (msg.phase === 'reinf') endReinforcement(true);
       if (msg.phase === 'attack') endAttack(true);
-      if (msg.phase === 'diplo') endDiplo(true);
+      if (msg.phase === 'diplo') endDiplomacy(true);
       break;
     case 'END_TURN':
       endTurn(true);
