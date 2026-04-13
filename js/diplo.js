@@ -34,7 +34,7 @@ function switchDiploTab(tab) {
   if (tab === 'active') renderModalPactList();
   if (tab === 'history') renderDiploHistory();
 }
-
+function selectPactType(type) {
   state.currentPactType = type;
   ['peace','territory','alliance'].forEach(t => {
     const btn = document.getElementById('type-'+t);
@@ -42,7 +42,7 @@ function switchDiploTab(tab) {
     const fields = document.getElementById('pact-form-'+t);
     if (fields) fields.style.display = t === type ? '' : 'none';
   });
-  if (type === 'echange') populateTerrSelects();
+  if (type === 'territory') populateTerrSelects();
 }
 
 function populateTerrSelects() {
@@ -72,7 +72,7 @@ function proposePact() {
   document.getElementById('diplo-modal').classList.remove('selecting');
   document.getElementById('map-select-instr').classList.remove('active');
 
-  if (type === 'echange') {
+  if (type === 'territory') {
     const give = document.getElementById('pact-give-terr').value;
     const recv = document.getElementById('pact-recv-terr').value;
     if (!give || !recv) { showToast('⚠ Sélectionnez les deux territoires !'); return; }
@@ -132,8 +132,8 @@ function proposePact() {
   showToast(`📜 Traité scellé !`);
 
   // Reset form
-  document.getElementById('pact-note-nonagg').value = '';
-  document.getElementById('pact-note-alliance').value = '';
+  const noteEl = document.getElementById('pact-note');
+  if (noteEl) noteEl.value = '';
 
   closeDiploModal();
   updateDiploPanel();
@@ -172,7 +172,7 @@ function openNegotiationModal(pact) {
   document.getElementById('negoc-opp-name').style.color = opp.lightColor;
   
   let body = '';
-  if (pact.type === 'echange') {
+  if (pact.type === 'territory') {
     body = `Échange de territoires :<br><strong>${pact.give}</strong> ⇄ <strong>${pact.recv}</strong>`;
   } else if (pact.type === 'alliance') {
     body = `Alliance militaire contre un objectif commun`;
@@ -193,7 +193,7 @@ function acceptTreaty() {
   if (!pact) return;
   
   state.pacts.push(pact);
-  if (pact.type === 'echange') {
+  if (pact.type === 'territory') {
     executeExchange(pact.give, pact.recv);
   }
   
@@ -227,16 +227,16 @@ function renderModalPactList() {
 
   if (all.length === 0) {
     container.innerHTML = '';
-    noMsg.style.display = '';
+    if (noMsg) noMsg.style.display = '';
     return;
   }
-  noMsg.style.display = 'none';
+  if (noMsg) noMsg.style.display = 'none';
   container.innerHTML = all.map(pk => pactCardHTML(pk, !pk.broken && pk.toursLeft > 0)).join('');
 }
 
 function pactCardHTML(pk, showBreak) {
-  const icons = { 'non-agression': '🛡', 'echange': '🔄', 'alliance': '⚔' };
-  const labels = { 'non-agression': 'Non-agression', 'echange': 'Échange', 'alliance': 'Alliance' };
+  const icons = { 'peace': '🛡', 'territory': '🔄', 'alliance': '⚔' };
+  const labels = { 'peace': 'Non-agression', 'territory': 'Échange', 'alliance': 'Alliance' };
   const breakBtn = showBreak
     ? `<button class="pact-break-btn" onclick="triggerBreachFlow(${pk.id})" title="Rompre ce pacte (déclenche des sanctions)">Rompre</button>`
     : '';
@@ -306,7 +306,7 @@ function applySanctionLogic(pactId, s, remote = false) {
   const pact = state.pacts.find(pk => pk.id === pactId);
   if (!pact) return;
 
-  const traitorIdx = remote ? state.currentPlayer : (1 - state.currentPlayer);
+  const traitorIdx = remote ? (1 - state.currentPlayer) : state.currentPlayer;
   const victimIdx = 1 - traitorIdx;
 
   pact.broken = true;

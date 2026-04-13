@@ -223,7 +223,7 @@ function updatePhaseUI() {
     const phaseDescs = {
       diplo:  `Phase diplomatique : négociez des pactes, échangez des territoires, formez des alliances.`,
       reinf: `Vous avez <strong>${state.reinforcements}</strong> armée(s) à placer. Cliquez sur un de vos territoires.`,
-      attack: `Cliquez sur un de vos territoires (≥3 armées) puis sur un territoire ennemi adjacent.`,
+      attack: `Cliquez sur un de vos territoires (≥2 armées) puis sur un territoire ennemi adjacent.`,
       move: `Déplacez des armées vers un territoire voisin (facultatif). Un seul déplacement par tour.`
     };
     phaseDesc.innerHTML = phaseDescs[state.phase] || '';
@@ -313,15 +313,20 @@ function openCombatModal(remote = false) {
   document.getElementById('def-terr').textContent = `${state.attackTo} (${def.armies} armées)`;
 
   const maxAtk = Math.min(3, atk.armies - 1);
-  state.atkDice = Math.max(2, maxAtk); 
-  state.defDice = 2;
+  state.atkDice = Math.max(1, maxAtk); 
+  state.defDice = Math.min(2, def.armies);
 
   let atkBtns = '';
-  for (let i = 2; i <= maxAtk; i++) {
+  for (let i = 1; i <= maxAtk; i++) {
     atkBtns += `<button class="dice-count-btn ${i === state.atkDice ? 'selected' : ''}" onclick="selectAtkDice(${i})">🎲 ${i}</button>`;
   }
   document.getElementById('atk-dice-btns').innerHTML = atkBtns;
-  document.getElementById('def-dice-btns').innerHTML = `<button class="dice-count-btn selected" onclick="selectDefDice(2)">🛡 2</button>`;
+
+  let defBtns = '';
+  for (let i = 1; i <= state.defDice; i++) {
+    defBtns += `<button class="dice-count-btn ${i === state.defDice ? 'selected' : ''}" onclick="selectDefDice(${i})">🛡 ${i}</button>`;
+  }
+  document.getElementById('def-dice-btns').innerHTML = defBtns;
 
   document.getElementById('atk-dice-display').innerHTML = '';
   document.getElementById('def-dice-display').innerHTML = '';
@@ -342,6 +347,9 @@ function selectAtkDice(n) {
 
 function selectDefDice(n) {
   state.defDice = n;
+  document.querySelectorAll('#def-dice-btns .dice-count-btn').forEach((btn) => {
+    btn.classList.toggle('selected', parseInt(btn.textContent.match(/\d+/)[0]) === n);
+  });
 }
 
 function openMoveModal() {

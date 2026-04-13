@@ -160,7 +160,7 @@ function onTerritoryClick(name) {
 
   if (state.phase === 'attack') {
     if (!state.attackFrom) {
-      if (terr.owner === p && terr.armies >= 3) {
+      if (terr.owner === p && terr.armies >= 2) {
         state.attackFrom = name;
         state.selectedTerritory = name;
         showTerrInfo(name);
@@ -183,7 +183,7 @@ function onTerritoryClick(name) {
         state.attackTo = name;
         broadcast({ type: 'ATTACK_TARGET', to: name });
         openCombatModal();
-      } else if (terr.owner === p && terr.armies >= 3) {
+      } else if (terr.owner === p && terr.armies >= 2) {
         state.attackFrom = name;
         state.selectedTerritory = name;
         showTerrInfo(name);
@@ -337,8 +337,8 @@ function resolveCombat(atkRolls, defRolls) {
     return;
   }
 
-  if (atk.armies < 3) {
-    addLog(`${atkPlayer.name} n'a plus assez d'armées pour attaquer (min 3 Requis pour 2 dés).`, 'system');
+  if (atk.armies < 2) {
+    addLog(`${atkPlayer.name} n'a plus assez d'armées pour attaquer (min 2 requis).`, 'system');
     if (resEl) resEl.textContent += ' Plus assez d\'armées pour l\'assaut obligatoire.';
     document.getElementById('btn-roll').style.display = 'none';
     document.getElementById('btn-continue-atk').style.display = 'none';
@@ -361,15 +361,20 @@ function resolveCombat(atkRolls, defRolls) {
   }
 
   const maxAtk2 = Math.min(3, atk.armies - 1);
-  state.atkDice = Math.max(2, Math.min(state.atkDice, maxAtk2));
-  state.defDice = 2; 
+  state.atkDice = Math.max(1, Math.min(state.atkDice, maxAtk2));
+  state.defDice = Math.min(2, def.armies); 
 
   let atkBtns2 = '';
-  for (let i = 2; i <= maxAtk2; i++) {
+  for (let i = 1; i <= maxAtk2; i++) {
     atkBtns2 += `<button class="dice-count-btn ${i === state.atkDice ? 'selected' : ''}" onclick="selectAtkDice(${i})">🎲 ${i}</button>`;
   }
   document.getElementById('atk-dice-btns').innerHTML = atkBtns2 || '';
-  document.getElementById('def-dice-btns').innerHTML = `<button class="dice-count-btn selected" onclick="selectDefDice(2)">🛡 2</button>`;
+  
+  let defBtns2 = '';
+  for (let i = 1; i <= state.defDice; i++) {
+    defBtns2 += `<button class="dice-count-btn ${i === state.defDice ? 'selected' : ''}" onclick="selectDefDice(${i})">🛡 ${i}</button>`;
+  }
+  document.getElementById('def-dice-btns').innerHTML = defBtns2 || '';
 }
 
 function continueAttack(remote = false) {

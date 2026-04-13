@@ -29,7 +29,7 @@ let state = {
   embargoTurns: [0, 0],      // turns remaining on diplomatic embargo
   vengeanceQueue: [],         // { victim, amount } — armies to give immediately
   globalTurn: 0,
-  currentPactType: 'non-agression',
+  currentPactType: 'peace',
   currentSanction: 'malus',
   pendingBreachPactId: null,
   diploSelectTarget: null, // 'give' or 'recv'

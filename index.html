@@ -165,6 +165,12 @@
       
       <!-- List of active sanctions -->
       <div id="sanctions-display" style="padding:0 1rem 1rem 1rem;"></div>
+
+      <!-- Recent Dice Section -->
+      <div class="panel-section" id="section-dice" style="display:none;">
+        <div class="panel-title">Dernier Combat</div>
+        <div id="dice-display" class="dice-history-view"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -324,6 +330,7 @@
 
     <div id="diplo-tab-active" class="diplo-tab-content">
       <div id="modal-pact-list" style="max-height:300px; overflow-y:auto; padding-right:5px;"></div>
+      <div id="modal-no-pacts" style="font-size:0.8rem; color:var(--parchment-shadow); text-align:center; padding:2rem; opacity:0.6;">Aucun traité actif pour le moment.</div>
       <div class="modal-btns" style="margin-top:1rem;">
         <button class="modal-btn" onclick="closeDiploModal()">Fermer</button>
       </div>
@@ -331,6 +338,7 @@
 
     <div id="diplo-tab-history" class="diplo-tab-content">
       <div id="diplo-history-list" style="max-height:300px; overflow-y:auto; font-size:0.8rem; line-height:1.4;"></div>
+      <div id="diplo-no-history" style="font-size:0.8rem; color:var(--parchment-shadow); text-align:center; padding:2rem; opacity:0.6;">Les archives diplomatiques sont vides.</div>
       <div class="modal-btns" style="margin-top:1rem;">
         <button class="modal-btn" onclick="closeDiploModal()">Fermer</button>
       </div>
@@ -360,6 +368,41 @@
       <div class="modal-btns">
         <button class="modal-btn battle-btn" onclick="acceptTreaty()">🤝 Accepter le traité</button>
         <button class="modal-btn" onclick="rejectTreaty()">🚫 Refuser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SANCTION MODAL ===== -->
+<div class="modal-overlay" id="sanction-modal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title">⚖ Jugement de Trahison</div>
+    <div class="modal-body">
+      <div id="sanction-breach-desc" style="text-align:center; margin-bottom:1.5rem; line-height:1.5; font-size:0.9rem;">
+        Un traité a été rompu. Choisissez la sanction.
+      </div>
+
+      <div class="form-group">
+        <label>Sélectionnez la sanction à infliger :</label>
+        <div class="sanction-grid">
+          <div class="sanction-option selected" id="sanc-opt-malus" onclick="selectSanction('malus')">
+            <div class="sanc-title">⚔ Malus Militaire</div>
+            <div class="sanc-desc">-3 renforts au prochain tour</div>
+          </div>
+          <div class="sanction-option" id="sanc-opt-embargo" onclick="selectSanction('embargo')">
+            <div class="sanc-title">🚫 Embargo</div>
+            <div class="sanc-desc">3 tours sans diplomatie</div>
+          </div>
+          <div class="sanction-option" id="sanc-opt-vengeance" onclick="selectSanction('vengeance')">
+            <div class="sanc-title">🛡 Vengeance</div>
+            <div class="sanc-desc">+2 armées immédiates</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-btns" style="margin-top:2rem;">
+        <button class="modal-btn danger" onclick="applySanction()">⚖ Appliquer la sanction</button>
+        <button class="modal-btn" onclick="dismissSanction()">🕊 Pardonner la trahison</button>
       </div>
     </div>
   </div>

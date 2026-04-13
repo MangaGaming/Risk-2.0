@@ -1546,14 +1546,15 @@ body {
 }
 .sanction-option:hover { border-color: var(--gold-dark); background: rgba(212,160,23,0.07); }
 .sanction-option.selected { border-color: var(--gold); background: rgba(212,160,23,0.12); }
-.sanction-option h4 {
+.sanction-option .sanc-title {
   font-family: 'Cinzel', serif;
   font-size: 0.78rem;
   color: var(--gold);
   margin-bottom: 0.3rem;
   letter-spacing: 0.05em;
+  font-weight: 700;
 }
-.sanction-option p { font-size: 0.72rem; color: var(--parchment-shadow); line-height: 1.4; }
+.sanction-option .sanc-desc { font-size: 0.72rem; color: var(--parchment-shadow); line-height: 1.4; }
 .sanction-option .sanction-icon { font-size: 1.2rem; float: right; }
 
 /* Malus indicator in header */
@@ -1627,3 +1628,20 @@ body {
   letter-spacing: 0.1em;
 }
 #toast.active { transform: translateX(-50%) translateY(0); }
+
+/* ===== DICE HISTORY VIEW ===== */
+.dice-history-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+.dice-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+.dice-row:first-child::before { content: 'ATT:'; font-family: 'Cinzel', serif; font-size: 0.6rem; margin-right: 4px; opacity: 0.5; align-self: center; }
+.dice-row:last-child::before { content: 'DEF:'; font-family: 'Cinzel', serif; font-size: 0.6rem; margin-right: 4px; opacity: 0.5; align-self: center; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
