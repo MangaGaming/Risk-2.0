@@ -1,0 +1,22 @@
+{
+  "name": "RISK — Jeu Mondial de la Stratégie",
+  "short_name": "Risk",
+  "description": "Portage digital du célèbre jeu de plateau Risk, optimisé pour le web.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#2d1b0e",
+  "theme_color": "#5c3317",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
