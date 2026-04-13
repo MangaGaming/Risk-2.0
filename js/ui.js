@@ -524,27 +524,55 @@ function initMapInteractions() {
     isDragging = false;
   });
 
+  let initialPinchDistance = null;
+
   svg.addEventListener('touchstart', (e) => {
     if (e.touches.length === 1) {
       isDragging = true;
       startX = e.touches[0].clientX - mapViewState.x;
       startY = e.touches[0].clientY - mapViewState.y;
       mapViewState.isDragged = false;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      initialPinchDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      mapViewState.isDragged = true;
     }
-  }, { passive: true });
+  }, { passive: false });
 
   svg.addEventListener('touchmove', (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    mapViewState.isDragged = true;
-    mapViewState.x = dx;
-    mapViewState.y = dy;
-    applyMapTransform();
-  }, { passive: true });
+    if (e.touches.length === 1 && isDragging) {
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if (Math.abs(dx - mapViewState.x) > 5 || Math.abs(dy - mapViewState.y) > 5) {
+        mapViewState.isDragged = true;
+      }
+      mapViewState.x = dx;
+      mapViewState.y = dy;
+      applyMapTransform();
+    } else if (e.touches.length === 2 && initialPinchDistance !== null) {
+      e.preventDefault();
+      const currentDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      // Small smoothing to zoomMap delta
+      if (currentDistance > 0 && initialPinchDistance > 0) {
+        const delta = currentDistance / initialPinchDistance;
+        // Don't register extremely tiny jitter as zoom
+        if (Math.abs(1 - delta) > 0.02) {
+           zoomMap(delta);
+           initialPinchDistance = currentDistance;
+        }
+      }
+    }
+  }, { passive: false });
 
   svg.addEventListener('touchend', () => {
     isDragging = false;
+    initialPinchDistance = null;
   });
 }
 
