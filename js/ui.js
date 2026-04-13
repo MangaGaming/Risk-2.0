@@ -24,6 +24,28 @@ function renderMap() {
   applyMapTransform(viewGroup);
   svg.appendChild(viewGroup);
 
+  // Add gradients for physical pieces
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const gradientColors = {
+    '0': ['#e74c3c', '#c0392b', '#922b21'],
+    '1': ['#3498db', '#2980b9', '#1a5276'],
+    'neutral': ['#95a5a6', '#7f8c8d', '#2c3e50']
+  };
+  Object.entries(gradientColors).forEach(([id, colors]) => {
+    const grad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+    grad.id = 'pieceGradient-' + id;
+    grad.setAttribute('cx', '35%'); grad.setAttribute('cy', '35%'); grad.setAttribute('r', '50%');
+    const stop0 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop0.setAttribute('offset', '0%'); stop0.setAttribute('stop-color', colors[0]);
+    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop1.setAttribute('offset', '70%'); stop1.setAttribute('stop-color', colors[1]);
+    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    stop2.setAttribute('offset', '100%'); stop2.setAttribute('stop-color', colors[2]);
+    grad.appendChild(stop0); grad.appendChild(stop1); grad.appendChild(stop2);
+    defs.appendChild(grad);
+  });
+  svg.appendChild(defs);
+
   // Ocean grid dots
   const dotGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   dotGroup.setAttribute('opacity', '0.15');
@@ -57,19 +79,20 @@ function renderMap() {
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', fx); line.setAttribute('y1', fy);
         line.setAttribute('x2', tx); line.setAttribute('y2', ty);
-        line.setAttribute('stroke', 'rgba(255,255,255,0.12)');
-        line.setAttribute('stroke-width', '1');
-        line.setAttribute('stroke-dasharray', '3,3');
+        line.setAttribute('stroke', 'rgba(212,160,23,0.25)');
+        line.setAttribute('stroke-width', '1.5');
+        line.setAttribute('stroke-dasharray', '4,6');
         viewGroup.appendChild(line);
       } else {
         const mx = (fx + tx) / 2;
         const my = (fy + ty) / 2;
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', `M${fx},${fy} Q${mx},${my - 30} ${tx},${ty}`);
-        path.setAttribute('stroke', 'rgba(255,255,255,0.07)');
-        path.setAttribute('stroke-width', '1');
-        path.setAttribute('stroke-dasharray', '5,5');
+        path.setAttribute('stroke', 'rgba(255,255,255,0.15)');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke-dasharray', '8,8');
         path.setAttribute('fill', 'none');
+        path.setAttribute('opacity', '0.4');
         viewGroup.appendChild(path);
       }
     });
@@ -144,15 +167,29 @@ function renderMap() {
     g.appendChild(path);
 
     // Army token
+    const tokenG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    tokenG.setAttribute('class', 'army-token-group');
+    
+    // Physical shadow
+    const shadowToken = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    shadowToken.setAttribute('cx', x + R * 0.55 + 1.5);
+    shadowToken.setAttribute('cy', y - R * 0.55 + 1.5);
+    shadowToken.setAttribute('r', '9');
+    shadowToken.setAttribute('fill', 'rgba(0,0,0,0.4)');
+    tokenG.appendChild(shadowToken);
+
+    // Piece body
     const tokenRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     tokenRing.setAttribute('cx', x + R * 0.55);
     tokenRing.setAttribute('cy', y - R * 0.55);
     tokenRing.setAttribute('r', '10');
-    tokenRing.setAttribute('fill', ownerColor);
-    tokenRing.setAttribute('stroke', ownerLightColor);
-    tokenRing.setAttribute('stroke-width', '1.5');
+    tokenRing.setAttribute('fill', 'url(#pieceGradient-' + (terr.owner === null ? 'neutral' : terr.owner) + ')');
+    tokenRing.setAttribute('stroke', 'rgba(255,255,255,0.2)');
+    tokenRing.setAttribute('stroke-width', '1');
     tokenRing.setAttribute('pointer-events', 'none');
-    g.appendChild(tokenRing);
+    tokenG.appendChild(tokenRing);
+    
+    g.appendChild(tokenG);
 
     const armyText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     armyText.setAttribute('x', x + R * 0.55);

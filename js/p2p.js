@@ -166,7 +166,7 @@ function handleRemoteMessage(msg) {
     case 'DIPLO_ACCEPT':
       const acceptedPact = msg.pact;
       state.pacts.push(acceptedPact);
-      if (acceptedPact.type === 'echange') {
+      if (acceptedPact.type === 'territory') {
         executeExchange(acceptedPact.give, acceptedPact.recv);
       }
       addDiploHistory(`🤝 Traité accepté par ${state.players[acceptedPact.player1].name}`);
