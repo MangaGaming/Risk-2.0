@@ -673,6 +673,18 @@ body {
 }
 
 /* ===========================
+   MARITIME ROUTES
+=========================== */
+.maritime-route {
+  stroke-dashoffset: 0;
+  animation: sailDash 8s linear infinite;
+}
+
+@keyframes sailDash {
+  to { stroke-dashoffset: -52; }
+}
+
+/* ===========================
    SIDE PANEL — Parchment scroll
 =========================== */
 #panel {

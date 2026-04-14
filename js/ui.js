@@ -24,187 +24,209 @@ function renderMap() {
   applyMapTransform(viewGroup);
   svg.appendChild(viewGroup);
 
-  // Add gradients for physical pieces
+  // ── DEFS ─────────────────────────────────────────────────
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+  // Army token radial gradients
   const gradientColors = {
-    '0': ['#e74c3c', '#c0392b', '#922b21'],
-    '1': ['#3498db', '#2980b9', '#1a5276'],
-    'neutral': ['#95a5a6', '#7f8c8d', '#2c3e50']
+    '0':      ['#e74c3c', '#c0392b', '#922b21'],
+    '1':      ['#3498db', '#2980b9', '#1a5276'],
+    'neutral':['#95a5a6', '#7f8c8d', '#2c3e50']
   };
   Object.entries(gradientColors).forEach(([id, colors]) => {
     const grad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
     grad.id = 'pieceGradient-' + id;
     grad.setAttribute('cx', '35%'); grad.setAttribute('cy', '35%'); grad.setAttribute('r', '50%');
-    const stop0 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-    stop0.setAttribute('offset', '0%'); stop0.setAttribute('stop-color', colors[0]);
-    const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-    stop1.setAttribute('offset', '70%'); stop1.setAttribute('stop-color', colors[1]);
-    const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-    stop2.setAttribute('offset', '100%'); stop2.setAttribute('stop-color', colors[2]);
-    grad.appendChild(stop0); grad.appendChild(stop1); grad.appendChild(stop2);
+    ['0%','70%','100%'].forEach((offset, i) => {
+      const s = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      s.setAttribute('offset', offset); s.setAttribute('stop-color', colors[i]);
+      grad.appendChild(s);
+    });
     defs.appendChild(grad);
   });
+
+  // Ocean gradient
+  const oceanGrad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+  oceanGrad.id = 'oceanGradient';
+  oceanGrad.setAttribute('cx', '40%'); oceanGrad.setAttribute('cy', '40%'); oceanGrad.setAttribute('r', '75%');
+  [['0%','#1f4e79'],['100%','#0a1f35']].forEach(([off, col]) => {
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    s.setAttribute('offset', off); s.setAttribute('stop-color', col);
+    oceanGrad.appendChild(s);
+  });
+  defs.appendChild(oceanGrad);
+
+  // Territory drop-shadow filter
+  const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+  filter.id = 'terrShadow';
+  filter.setAttribute('x', '-10%'); filter.setAttribute('y', '-10%');
+  filter.setAttribute('width', '120%'); filter.setAttribute('height', '120%');
+  const feDs = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+  feDs.setAttribute('dx', '1'); feDs.setAttribute('dy', '2');
+  feDs.setAttribute('stdDeviation', '2.5'); feDs.setAttribute('flood-opacity', '0.45');
+  filter.appendChild(feDs);
+  defs.appendChild(filter);
+
   svg.appendChild(defs);
 
-  // Ocean grid dots
+  // ── OCEAN BACKGROUND ──────────────────────────────────────
+  const oceanRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  oceanRect.setAttribute('x', '-1000'); oceanRect.setAttribute('y', '-500');
+  oceanRect.setAttribute('width', '3000'); oceanRect.setAttribute('height', '1500');
+  oceanRect.setAttribute('fill', 'url(#oceanGradient)');
+  viewGroup.appendChild(oceanRect);
+
+  // Subtle ocean grid dots
   const dotGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  dotGroup.setAttribute('opacity', '0.15');
-  for (let x = -200; x < 1200; x += 40) {
-    for (let y = -100; y < 600; y += 40) {
+  dotGroup.setAttribute('opacity', '0.1');
+  for (let x = 0; x < 1000; x += 32) {
+    for (let y = 0; y < 540; y += 28) {
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      dot.setAttribute('cx', x);
+      dot.setAttribute('cx', x + (y % 56 === 0 ? 0 : 16));
       dot.setAttribute('cy', y);
-      dot.setAttribute('r', '1');
-      dot.setAttribute('fill', 'rgba(255,255,255,0.5)');
+      dot.setAttribute('r', '1.2');
+      dot.setAttribute('fill', '#89d4f5');
       dotGroup.appendChild(dot);
     }
   }
   viewGroup.appendChild(dotGroup);
 
-  // Draw connections
-  const drawnEdges = new Set();
-  Object.entries(ADJACENCY).forEach(([from, tos]) => {
+  // ── MARITIME ROUTES ───────────────────────────────────────
+  MARITIME_ROUTES.forEach(([from, to]) => {
     const fromPos = POSITIONS[from];
-    if (!fromPos) return;
+    const toPos   = POSITIONS[to];
+    if (!fromPos || !toPos) return;
+
     const [fx, fy] = fromPos;
-    tos.forEach(to => {
-      const toPos = POSITIONS[to];
-      if (!toPos) return;
-      const key = [from, to].sort().join('|');
-      if (drawnEdges.has(key)) return;
-      drawnEdges.add(key);
-      const [tx, ty] = toPos;
-      const dist = Math.sqrt((tx-fx)**2 + (ty-fy)**2);
-      if (dist < 200) {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', fx); line.setAttribute('y1', fy);
-        line.setAttribute('x2', tx); line.setAttribute('y2', ty);
-        line.setAttribute('stroke', 'rgba(212,160,23,0.25)');
-        line.setAttribute('stroke-width', '1.5');
-        line.setAttribute('stroke-dasharray', '4,6');
-        viewGroup.appendChild(line);
-      } else {
-        const mx = (fx + tx) / 2;
-        const my = (fy + ty) / 2;
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M${fx},${fy} Q${mx},${my - 30} ${tx},${ty}`);
-        path.setAttribute('stroke', 'rgba(255,255,255,0.15)');
-        path.setAttribute('stroke-width', '2');
-        path.setAttribute('stroke-dasharray', '8,8');
-        path.setAttribute('fill', 'none');
-        path.setAttribute('opacity', '0.4');
-        viewGroup.appendChild(path);
-      }
-    });
+    const [tx, ty] = toPos;
+
+    let d, midX, midY;
+    const isAlaskaKam = (from === 'Alaska' || from === 'Kamchatka') &&
+                        (to   === 'Alaska' || to   === 'Kamchatka');
+    if (isAlaskaKam) {
+      const arcY = Math.min(fy, ty) - 52;
+      d = `M${fx},${fy} C${fx},${arcY} ${tx},${arcY} ${tx},${ty}`;
+      midX = (fx + tx) / 2; midY = arcY + 5;
+    } else {
+      const mx = (fx + tx) / 2, my = (fy + ty) / 2;
+      const dxr = tx - fx, dyr = ty - fy;
+      const len = Math.sqrt(dxr*dxr + dyr*dyr);
+      const nx = -dyr / len, ny = dxr / len;
+      const curv = Math.min(len * 0.22, 45);
+      const cpx = mx + nx * curv, cpy = my + ny * curv - 15;
+      d = `M${fx},${fy} Q${cpx},${cpy} ${tx},${ty}`;
+      midX = mx + nx * curv * 0.5; midY = my + ny * curv * 0.5 - 7;
+    }
+
+    // Shadow stroke
+    const shadow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    shadow.setAttribute('d', d); shadow.setAttribute('fill', 'none');
+    shadow.setAttribute('stroke', 'rgba(0,0,0,0.35)'); shadow.setAttribute('stroke-width', '4');
+    shadow.setAttribute('stroke-dasharray', '8,6'); shadow.setAttribute('stroke-linecap', 'round');
+    viewGroup.appendChild(shadow);
+
+    // Route line
+    const route = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    route.setAttribute('d', d); route.setAttribute('fill', 'none');
+    route.setAttribute('stroke', '#5bc0eb'); route.setAttribute('stroke-width', '2');
+    route.setAttribute('stroke-dasharray', '8,6'); route.setAttribute('opacity', '0.85');
+    route.setAttribute('stroke-linecap', 'round'); route.setAttribute('class', 'maritime-route');
+    viewGroup.appendChild(route);
+
+    // Anchor icon at midpoint
+    const anchor = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    anchor.setAttribute('x', midX); anchor.setAttribute('y', midY);
+    anchor.setAttribute('font-size', '9'); anchor.setAttribute('text-anchor', 'middle');
+    anchor.setAttribute('dominant-baseline', 'middle');
+    anchor.setAttribute('opacity', '0.65'); anchor.setAttribute('pointer-events', 'none');
+    anchor.textContent = '⚓';
+    viewGroup.appendChild(anchor);
   });
 
-  // Draw territories
-  const R = 22;
-  Object.entries(POSITIONS).forEach(([name, [x, y]]) => {
+  // ── TERRITORY POLYGONS ────────────────────────────────────
+  Object.entries(TERRITORY_PATHS).forEach(([name, pointsStr]) => {
     const terr = state.territories[name];
     if (!terr) return;
-    const contColor = getContinentColor(name);
-    const ownerColor = terr.owner !== null ? state.players[terr.owner].color : '#1a2a3a';
-    const ownerLightColor = terr.owner !== null ? state.players[terr.owner].lightColor : '#334455';
+
+    const contColor  = getContinentColor(name);
+    const ownerColor = terr.owner !== null ? state.players[terr.owner].color : null;
+
+    const isSelected = state.selectedTerritory === name ||
+                       state.attackFrom === name ||
+                       state.moveFrom   === name;
+    let isAttackTarget = false, isMoveTarget = false;
+
+    if (state.attackFrom && state.phase === 'attack') {
+      const adj = ADJACENCY[state.attackFrom] || [];
+      if (adj.includes(name) && terr.owner !== state.currentPlayer) isAttackTarget = true;
+    }
+    if (state.moveFrom && state.phase === 'move') {
+      const adj = ADJACENCY[state.moveFrom] || [];
+      if (adj.includes(name) && terr.owner === state.currentPlayer && name !== state.moveFrom) isMoveTarget = true;
+    }
 
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'territory-group');
     g.style.cursor = 'pointer';
 
-    // Outer ring
-    const outerHex = hexagonPath(x, y, R + 3);
-    const ringPath = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    ringPath.setAttribute('points', outerHex);
-    ringPath.setAttribute('fill', contColor);
-    ringPath.setAttribute('fill-opacity', '0.35');
-    ringPath.setAttribute('stroke', contColor);
-    ringPath.setAttribute('stroke-width', '1');
-    ringPath.setAttribute('stroke-opacity', '0.6');
-    g.appendChild(ringPath);
+    // Territory polygon
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    poly.setAttribute('points', pointsStr);
+    poly.setAttribute('class', 'territory');
+    poly.setAttribute('data-name', name);
+    poly.id = 'terr-' + nameToId(name);
+    poly.setAttribute('filter', 'url(#terrShadow)');
 
-    // Main hex
-    const hex = hexagonPath(x, y, R);
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    path.setAttribute('points', hex);
-    path.setAttribute('class', 'territory');
-    path.setAttribute('data-name', name);
-    path.id = 'terr-' + nameToId(name);
-
-    if (terr.owner !== null) {
-      path.setAttribute('fill', ownerColor);
-      path.setAttribute('fill-opacity', '0.9');
+    if (ownerColor) {
+      poly.setAttribute('fill', ownerColor);
+      poly.setAttribute('fill-opacity', isSelected ? '1' : '0.82');
     } else {
-      path.setAttribute('fill', '#1a2a3a');
-      path.setAttribute('fill-opacity', '0.5');
+      poly.setAttribute('fill', contColor);
+      poly.setAttribute('fill-opacity', '0.42');
     }
 
-    let strokeColor = 'rgba(0,0,0,0.5)';
-    let strokeWidth = '1.5';
-    if (state.selectedTerritory === name || state.attackFrom === name) {
-      strokeColor = '#f1c40f';
-      strokeWidth = '3';
-    }
-    if (state.attackFrom && state.phase === 'attack') {
-      const adj = ADJACENCY[state.attackFrom] || [];
-      if (adj.includes(name) && terr.owner !== state.currentPlayer) {
-        strokeColor = '#ff3333';
-        strokeWidth = '3';
-        path.classList.add('attack-target');
-      }
-    }
-    if (state.moveFrom && state.phase === 'move') {
-      const adj = ADJACENCY[state.moveFrom] || [];
-      if (adj.includes(name) && terr.owner === state.currentPlayer && name !== state.moveFrom) {
-        strokeColor = '#44ff88';
-        strokeWidth = '3';
-        path.classList.add('move-target');
-      }
-    }
-    path.setAttribute('stroke', strokeColor);
-    path.setAttribute('stroke-width', strokeWidth);
+    let strokeColor = 'rgba(0,0,0,0.55)', strokeWidth = '1';
+    if (isSelected)      { strokeColor = '#f1c40f'; strokeWidth = '3'; }
+    else if (isAttackTarget) { strokeColor = '#ff3333'; strokeWidth = '3'; poly.classList.add('attack-target'); }
+    else if (isMoveTarget)   { strokeColor = '#44ff88'; strokeWidth = '3'; poly.classList.add('move-target'); }
 
-    path.addEventListener('click', () => onTerritoryClick(name));
-    g.appendChild(path);
+    poly.setAttribute('stroke', strokeColor);
+    poly.setAttribute('stroke-width', strokeWidth);
+    poly.setAttribute('stroke-linejoin', 'round');
+    poly.addEventListener('click', () => onTerritoryClick(name));
+    g.appendChild(poly);
 
-    // Army token
-    const tokenG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    tokenG.setAttribute('class', 'army-token-group');
-    
-    // Physical shadow
-    const shadowToken = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    shadowToken.setAttribute('cx', x + R * 0.55 + 1.5);
-    shadowToken.setAttribute('cy', y - R * 0.55 + 1.5);
-    shadowToken.setAttribute('r', '9');
-    shadowToken.setAttribute('fill', 'rgba(0,0,0,0.4)');
-    tokenG.appendChild(shadowToken);
+    // ── Army token ─────────────────────
+    const [px, py] = POSITIONS[name];
+    const tokX = px, tokY = py - 10;
 
-    // Piece body
-    const tokenRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    tokenRing.setAttribute('cx', x + R * 0.55);
-    tokenRing.setAttribute('cy', y - R * 0.55);
-    tokenRing.setAttribute('r', '10');
-    tokenRing.setAttribute('fill', 'url(#pieceGradient-' + (terr.owner === null ? 'neutral' : terr.owner) + ')');
-    tokenRing.setAttribute('stroke', 'rgba(255,255,255,0.2)');
-    tokenRing.setAttribute('stroke-width', '1');
-    tokenRing.setAttribute('pointer-events', 'none');
-    tokenG.appendChild(tokenRing);
-    
-    g.appendChild(tokenG);
+    const shadowCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    shadowCircle.setAttribute('cx', tokX + 1.5); shadowCircle.setAttribute('cy', tokY + 2);
+    shadowCircle.setAttribute('r', '8.5'); shadowCircle.setAttribute('fill', 'rgba(0,0,0,0.4)');
+    shadowCircle.setAttribute('pointer-events', 'none');
+    g.appendChild(shadowCircle);
+
+    const token = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    token.setAttribute('cx', tokX); token.setAttribute('cy', tokY); token.setAttribute('r', '8.5');
+    token.setAttribute('fill', 'url(#pieceGradient-' + (terr.owner === null ? 'neutral' : terr.owner) + ')');
+    token.setAttribute('stroke', 'rgba(255,255,255,0.2)'); token.setAttribute('stroke-width', '1');
+    token.setAttribute('pointer-events', 'none');
+    g.appendChild(token);
 
     const armyText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    armyText.setAttribute('x', x + R * 0.55);
-    armyText.setAttribute('y', y - R * 0.55);
+    armyText.setAttribute('x', tokX); armyText.setAttribute('y', tokY);
     armyText.setAttribute('class', 'terr-armies-text');
-    armyText.setAttribute('font-size', terr.armies >= 10 ? '6' : '8');
+    armyText.setAttribute('font-size', terr.armies >= 10 ? '6' : '7.5');
     armyText.textContent = terr.armies;
+    armyText.setAttribute('pointer-events', 'none');
     g.appendChild(armyText);
 
+    // Territory label
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', x);
-    label.setAttribute('y', y + 2);
-    label.setAttribute('class', 'terr-label');
-    label.setAttribute('font-size', '5.5');
+    label.setAttribute('x', px); label.setAttribute('y', py + 4);
+    label.setAttribute('class', 'terr-label'); label.setAttribute('font-size', '4.8');
     label.textContent = shortName(name);
+    label.setAttribute('pointer-events', 'none');
     g.appendChild(label);
 
     viewGroup.appendChild(g);
