@@ -1891,3 +1891,10 @@ body {
     right: 10px;
   }
 }
+
+
+@keyframes pulse-gold {
+  0%,100% { stroke-opacity:1; filter: drop-shadow(0 0 8px #f1c40f); }
+  50%      { stroke-opacity:0.4; filter: drop-shadow(0 0 3px #f1c40f); }
+}
+.territory.selected { animation: pulse-gold 0.8s ease-in-out infinite; }
