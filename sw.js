@@ -1,7 +1,8 @@
-const CACHE_NAME = 'risk-v1';
+const CACHE_NAME = 'risk-v2';
 const ASSETS = [
   './index.html',
   './style.css',
+  './risk_board_real.svg',
   './js/config.js',
   './js/state.js',
   './js/utils.js',
@@ -16,6 +17,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);

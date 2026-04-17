@@ -3,13 +3,30 @@
 // ============================================================
 
 window.addEventListener('DOMContentLoaded', () => {
-  // Initialize Map Interactions
-  initMapInteractions();
+  // Initialize Map Interactions safely
+  if (typeof window.initMapInteractions === 'function') {
+    window.initMapInteractions();
+  } else {
+    console.error('CRITICAL: initMapInteractions not found. UI scripts may have failed to load or execute.');
+    // Attempt fallback if possible or show user hint
+  }
 
   // Register Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker registered'))
+      .then(reg => {
+        console.log('Service Worker registered');
+        // Handle updates
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          installingWorker.onstatechange = () => {
+            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+               console.log('New update available. Refresh to apply changes.');
+               // Optional: window.location.reload(); 
+            }
+          };
+        };
+      })
       .catch(err => console.log('Service Worker registration failed', err));
   }
 });
