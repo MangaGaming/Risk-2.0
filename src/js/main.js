@@ -89,6 +89,27 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sanction-embargo').classList.add('selected');
   });
 
+  document.getElementById('btn-trade-cards')?.addEventListener('click', () => {
+    if (window.tradeCards()) {
+      const p = state.currentPlayer;
+      const remaining = state.players[p].cards.length;
+      // If mandatory, keep modal until hand is ≤4
+      if (state.mustTradeCards && remaining >= 5) {
+        state.selectedCards = [];
+        window.renderCardsModal();
+      } else if (state.mustTradeCards && remaining <= 4) {
+        state.mustTradeCards = false;
+        window.closeCardsModal();
+      } else {
+        window.closeCardsModal();
+      }
+    }
+  });
+  document.getElementById('btn-pass-trade')?.addEventListener('click', () => {
+    state.mustTradeCards = false;
+    window.closeCardsModal();
+  });
+
   document.getElementById('btn-replay')?.addEventListener('click', () => location.reload());
 
   // Show intro

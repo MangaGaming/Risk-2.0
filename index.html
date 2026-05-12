@@ -429,6 +429,30 @@
   </div>
 </div>
 
+<!-- ===== CARDS MODAL ===== -->
+<div class="modal-overlay" id="cards-modal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-header-icon">📜</div>
+      <h2 class="modal-title">Cartes de RISK</h2>
+    </div>
+    <div class="modal-body">
+      <div id="cards-value-display" style="font-family:'Cinzel',serif; font-size:0.75rem; color:var(--gold-dark); text-align:center; margin-bottom:0.75rem; padding:0.3rem; background:rgba(212,160,23,0.1); border:1px solid rgba(212,160,23,0.2);">
+        Valeur du prochain échange : -- armée(s)
+      </div>
+      <div id="cards-container" class="cards-grid">
+      </div>
+      <div id="trade-info" style="font-size:0.75rem; color:var(--parchment-shadow); text-align:center; margin:0.75rem 0; min-height:1.2em;">
+        Sélectionnez 3 cartes pour former un set.
+      </div>
+      <div class="modal-btns">
+        <button class="modal-btn battle-btn" id="btn-trade-cards" disabled>📜 Échanger</button>
+        <button class="modal-btn" id="btn-pass-trade">✓ Passer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== WIN SCREEN ===== -->
 <div class="modal-overlay" id="win-screen-overlay">
 </div>

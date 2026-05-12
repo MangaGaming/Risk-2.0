@@ -28,6 +28,8 @@ export let state = {
   // === CARDS STATE ===
   cardsTradedTotal: 0,
   cardDeck: [], // [{ territory: '...', type: 'infantry'|'cavalry'|'artillery'|'wild' }]
+  territoryBonusUsed: 0,  // total +2 bonuses used this turn via territory matches
+  selectedCards: [],      // indices of currently selected cards in hand
 
   // === DIPLOMACY STATE ===
   pacts: [],           // { id, type, player0, player1, note, toursLeft, createdTurn, broken, brokenBy }
@@ -43,7 +45,8 @@ export let state = {
   pendingBreachPactId: null,
   diploSelectTarget: null, // 'give' or 'recv'
   incomingProposal: null,
-  selectedOpponent: 1
+  selectedOpponent: 1,
+  mustTradeCards: false
 };
 
 export let mapViewState = {

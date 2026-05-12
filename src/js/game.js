@@ -83,6 +83,101 @@ export function drawCard(playerIdx) {
   }
 }
 
+// ── CARD TRADE-IN SYSTEM (per official Risk rules) ──
+
+export function getCardSetValue() {
+  // 1st=4, 2nd=6, 3rd=8, 4th=10, 5th=12, 6th=15, then +5 each
+  const n = state.cardsTradedTotal + 1;
+  if (n <= 5) return 2 + n * 2;
+  if (n === 6) return 15;
+  return 15 + (n - 6) * 5;
+}
+
+export function isValidCardSet(cards) {
+  if (cards.length !== 3) return false;
+  const types = cards.map(c => c.type);
+  const wilds = types.filter(t => t === 'wild').length;
+  const nonWilds = types.filter(t => t !== 'wild');
+
+  if (wilds === 0) {
+    // 3 same or 1 of each
+    return (nonWilds.every(t => t === nonWilds[0])) || (new Set(nonWilds).size === 3);
+  }
+  // Any set containing at least 1 wild card is valid
+  return true;
+}
+
+export function tradeCards() {
+  const p = state.currentPlayer;
+  const player = state.players[p];
+  if (state.selectedCards.length !== 3) return false;
+
+  const tradedCards = state.selectedCards.map(i => player.cards[i]);
+  if (!isValidCardSet(tradedCards)) return false;
+
+  const baseValue = getCardSetValue();
+  state.cardsTradedTotal++;
+
+  let bonusArmies = 0;
+  let bonusTerrs = [];
+
+  for (const card of tradedCards) {
+    if (card.territory && state.territories[card.territory]?.owner === p) {
+      const add = Math.min(2, 2 - state.territoryBonusUsed - bonusArmies);
+      if (add > 0) {
+        state.territories[card.territory].armies += add;
+        state.territoryBonusUsed += add;
+        bonusArmies += add;
+        bonusTerrs.push(card.territory);
+      }
+    }
+  }
+
+  state.reinforcements += baseValue;
+
+  // If not in reinf phase (e.g. elimination mid-attack), auto-distribute
+  if (state.phase !== 'reinf') {
+    const myTerrs = Object.entries(state.territories).filter(([,t]) => t.owner === p);
+    let remaining = state.reinforcements;
+    let idx = 0;
+    while (remaining > 0 && myTerrs.length > 0) {
+      state.territories[myTerrs[idx % myTerrs.length][0]].armies++;
+      remaining--;
+      idx++;
+    }
+    state.reinforcements = 0;
+  }
+
+  // Remove cards from hand (descending indices)
+  const indices = [...state.selectedCards].sort((a, b) => b - a);
+  for (const idx of indices) {
+    player.cards.splice(idx, 1);
+  }
+
+  state.selectedCards = [];
+
+  addLog(`${player.name} échange 3 cartes pour ${baseValue} armée(s).`, 'system');
+  if (bonusArmies > 0) {
+    addLog(`Bonus territoire : +${bonusArmies} sur ${bonusTerrs.join(', ')}.`, 'system');
+  }
+  showToast(`📜 Échange : +${baseValue + bonusArmies} armées !`);
+
+  window.renderMap();
+  window.updatePhaseUI();
+  return true;
+}
+
+export function openCardsModal() {
+  state.selectedCards = [];
+  window.renderCardsModal();
+  document.getElementById('cards-modal').classList.add('active');
+}
+
+export function closeCardsModal() {
+  document.getElementById('cards-modal').classList.remove('active');
+  state.selectedCards = [];
+}
+
 export function startTurn() {
   const p = state.currentPlayer;
   state.phase = 'diplo';
@@ -95,6 +190,7 @@ export function startTurn() {
   state.justConquered = false;
   state.hasCapturedThisTurn = false;
   state.globalTurn++;
+  state.territoryBonusUsed = 0;
 
   // Decrement pact turns only at start of first player's turn (round-based)
   if (p === 0) {
@@ -159,10 +255,13 @@ export function startTurn() {
   window.renderMap();
   addLog(`${state.players[p].name} commence son tour. +${reinf} renforts.`, 'system');
   
-  // Mandatory trade if 5+ cards
+  // Mandatory trade if 5+ cards (per official rules)
   if (state.players[p].cards.length >= 5) {
+    state.mustTradeCards = true;
     showToast("📜 Vous devez échanger des cartes !");
     window.openCardsModal();
+  } else {
+    state.mustTradeCards = false;
   }
 }
 
@@ -276,8 +375,12 @@ export function stopAttack() {
 
 export function confirmMove() {
   const val = parseInt(document.getElementById('move-slider').value);
+  const wasConquest = state.justConquered;
   executeMove(val);
   window.closeMoveModal();
+  if (wasConquest) {
+    window.closeCombatModal();
+  }
   if (multi.active) {
     broadcast({ type: 'SYNC_STATE', territories: state.territories, phase: state.phase, reinforcements: 0 });
   }
@@ -330,8 +433,9 @@ export function checkWin(player, loserIdx) {
       winner.cards.push(...loser.cards);
       loser.cards = [];
       
-      // If winner now has 6+ cards, they must trade immediately
+      // If winner now has 6+ cards, must trade to ≤4 (per official rules)
       if (winner.cards.length >= 6) {
+        state.mustTradeCards = true;
         showToast("📜 Trop de cartes ! Échange obligatoire immédiat.");
         window.openCardsModal();
       }
@@ -370,3 +474,8 @@ window.continueAttack = continueAttack;
 window.stopAttack = stopAttack;
 window.confirmMove = confirmMove;
 window.cancelMove = cancelMove;
+window.tradeCards = tradeCards;
+window.openCardsModal = openCardsModal;
+window.closeCardsModal = closeCardsModal;
+window.getCardSetValue = getCardSetValue;
+window.isValidCardSet = isValidCardSet;

@@ -414,6 +414,102 @@ export function closeMoveModal() {
   renderMap();
 }
 
+// ── CARDS MODAL ──
+
+export function renderCardsModal() {
+  const p = state.currentPlayer;
+  const player = state.players[p];
+  const cards = player.cards;
+  const container = document.getElementById('cards-container');
+  if (!container) return;
+
+  const typeEmoji = { infantry: '⚔️', cavalry: '🐎', artillery: '🔫', wild: '🃏' };
+  const typeName = { infantry: 'Infanterie', cavalry: 'Cavalerie', artillery: 'Artillerie', wild: 'Joker' };
+  const value = window.getCardSetValue();
+
+  document.getElementById('cards-value-display').textContent = `Valeur du prochain échange : ${value} armée(s)`;
+
+  container.innerHTML = cards.map((card, i) => {
+    const emoji = typeEmoji[card.type] || '🃏';
+    const tname = typeName[card.type] || 'Joker';
+    const terr = card.territory || '—';
+    const owned = card.territory && state.territories[card.territory]?.owner === p;
+    return `<div class="card-item" data-index="${i}" onclick="window.toggleCardSelect(${i})">
+      <div class="card-item-check">✓</div>
+      <div class="card-item-terr">${terr}</div>
+      <div class="card-item-type">${emoji} ${tname}</div>
+      ${owned ? '<div class="card-item-owned">★ Possédé</div>' : ''}
+    </div>`;
+  }).join('');
+
+  state.selectedCards = [];
+  document.getElementById('btn-trade-cards').disabled = true;
+  document.getElementById('trade-info').textContent = 'Sélectionnez 3 cartes pour former un set.';
+
+  // Show/hide pass button
+  const passBtn = document.getElementById('btn-pass-trade');
+  if (passBtn) {
+    passBtn.style.display = state.mustTradeCards ? 'none' : 'inline-block';
+  }
+}
+
+export function toggleCardSelect(index) {
+  const p = state.currentPlayer;
+  const player = state.players[p];
+  if (index < 0 || index >= player.cards.length) return;
+
+  if (state.selectedCards.includes(index)) {
+    state.selectedCards = state.selectedCards.filter(i => i !== index);
+  } else {
+    if (state.selectedCards.length >= 3) {
+      showToast("Sélectionnez exactement 3 cartes !");
+      return;
+    }
+    state.selectedCards.push(index);
+  }
+  updateCardsSelection();
+}
+
+function updateCardsSelection() {
+  const p = state.currentPlayer;
+  const player = state.players[p];
+  const cards = player.cards;
+  const selected = state.selectedCards;
+  const tradeBtn = document.getElementById('btn-trade-cards');
+  const info = document.getElementById('trade-info');
+  if (!tradeBtn || !info) return;
+
+  document.querySelectorAll('.card-item').forEach(el => {
+    const idx = parseInt(el.dataset.index);
+    el.classList.toggle('selected', selected.includes(idx));
+  });
+
+  if (selected.length !== 3) {
+    tradeBtn.disabled = true;
+    info.textContent = `Sélectionnez 3 cartes (${selected.length}/3)`;
+    return;
+  }
+
+  const tradedCards = selected.map(i => cards[i]);
+  if (window.isValidCardSet(tradedCards)) {
+    tradeBtn.disabled = false;
+    const val = window.getCardSetValue();
+    let bonusTotal = 0;
+    for (const card of tradedCards) {
+      if (card.territory && state.territories[card.territory]?.owner === p) {
+        bonusTotal += 2;
+      }
+    }
+    const remaining = Math.max(0, 2 - state.territoryBonusUsed);
+    const displayBonus = Math.min(bonusTotal, remaining);
+    const bonusText = displayBonus > 0 ? ` (+${displayBonus} bonus territoire)` : '';
+    info.textContent = `Set valide ! Valeur : ${val} armée(s)${bonusText}`;
+  } else {
+    tradeBtn.disabled = true;
+    info.textContent = 'Ces 3 cartes ne forment pas un set valide.';
+  }
+}
+
 // Global exports
 window.buildLegend = buildLegend;
 window.updateHeader = updateHeader;
@@ -429,3 +525,5 @@ window.openMoveModal = openMoveModal;
 window.updateMoveCount = updateMoveCount;
 window.closeCombatModal = closeCombatModal;
 window.closeMoveModal = closeMoveModal;
+window.renderCardsModal = renderCardsModal;
+window.toggleCardSelect = toggleCardSelect;
