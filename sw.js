@@ -1,19 +1,19 @@
 const CACHE_NAME = 'risk-v2';
 const ASSETS = [
-  './index.html',
-  './style.css',
-  './risk_board_real.svg',
-  './js/config.js',
-  './js/state.js',
-  './js/utils.js',
-  './js/p2p.js',
-  './js/diplo.js',
-  './js/game.js',
-  './js/ui.js',
-  './js/main.js',
+  './src/html/index.html',
+  './src/css/style.css',
+  './src/assets/risk_board_real.svg',
+  './src/js/config.js',
+  './src/js/state.js',
+  './src/js/utils.js',
+  './src/js/p2p.js',
+  './src/js/diplo.js',
+  './src/js/game.js',
+  './src/js/ui.js',
+  './src/js/main.js',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './src/assets/icon-192.png',
+  './src/assets/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

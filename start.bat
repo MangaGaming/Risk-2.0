@@ -1,0 +1,9 @@
+@echo off
+echo Initialisation du projet Risk (Vite)...
+if not exist node_modules (
+    echo Installation des dependances...
+    call npm install
+)
+echo Lancement du serveur de developpement...
+call npm run dev
+pause
