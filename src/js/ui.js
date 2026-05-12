@@ -122,6 +122,15 @@ export function updatePhaseUI() {
   }
 
   updateHeader();
+
+  // Update cards button
+  const cardsBtn = document.getElementById('btn-show-cards');
+  if (cardsBtn) {
+    const p = state.currentPlayer;
+    const count = state.players[p]?.cards.length || 0;
+    cardsBtn.textContent = `📜 Cartes (${count})`;
+    cardsBtn.disabled = !isMyTurn();
+  }
 }
 
 export function renderMap() {

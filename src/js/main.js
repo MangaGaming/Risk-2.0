@@ -89,6 +89,15 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sanction-embargo').classList.add('selected');
   });
 
+  document.getElementById('btn-show-cards')?.addEventListener('click', () => {
+    if (isMyTurn()) {
+      state.mustTradeCards = false;
+      window.openCardsModal();
+    } else {
+      showToast("Ce n'est pas votre tour !");
+    }
+  });
+
   document.getElementById('btn-trade-cards')?.addEventListener('click', () => {
     if (window.tradeCards()) {
       const p = state.currentPlayer;
