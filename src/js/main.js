@@ -2,29 +2,18 @@
 // MAIN ENTRY POINT
 // ============================================================
 
-import { state, multi, mapViewState } from './state.js';
+import { state, multi } from './state.js';
 import { ADJACENCY } from './config.js';
 import { showToast, countTerritories, isMyTurn } from './utils.js';
 import { initMultiplayer, hostGame, joinGame, closeMultiModal, broadcast } from './p2p.js';
 import { initGame, startTurn, endTurn, rollCombat, continueAttack, stopAttack, confirmMove, cancelMove, endDiplomacy, endReinforcement, endAttack } from './game.js';
-import { renderMap, updateMapTransform, updateHeader, updatePhaseUI, buildLegend, updateDiploPanel, renderSanctionsDisplay, updateMoveCount } from './ui.js';
+import { renderMap, updateHeader, updatePhaseUI, buildLegend, updateDiploPanel, renderSanctionsDisplay, updateMoveCount } from './ui.js';
 import { openDiploModal, selectOpponent, switchDiploTab, selectPactType, proposePact, startMapPick, acceptTreaty, rejectTreaty, applySanction, dismissSanction, selectSanction } from './diplo.js';
+import { initRenderer, getScene, getCamera, getRenderer } from './renderer3d.js';
+import { buildTerritories, handlePointerMove, handlePointerDown, syncTerritories } from './map3d.js';
+import { initPieces, syncPieces } from './pieces3d.js';
 
 window.addEventListener('DOMContentLoaded', () => {
-  // Initialize Map Interaction
-  const svg = document.getElementById('world-map');
-  if (svg) {
-    svg.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    svg.addEventListener('wheel', handleWheel, { passive: false });
-    
-    // Touch support
-    svg.addEventListener('touchstart', handleTouchStart, { passive: false });
-    svg.addEventListener('touchmove', handleTouchMove, { passive: false });
-    svg.addEventListener('touchend', handleTouchEnd);
-  }
-
   // UI Event Listeners
   document.getElementById('btn-start-intro')?.addEventListener('click', showSetup);
   document.getElementById('btn-multi-intro')?.addEventListener('click', initMultiplayer);
@@ -32,9 +21,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-count-3')?.addEventListener('click', () => setPlayerCount(3));
   document.getElementById('btn-start-battle')?.addEventListener('click', startGame);
   
-  document.getElementById('btn-zoom-in')?.addEventListener('click', () => zoom(1.2));
-  document.getElementById('btn-zoom-out')?.addEventListener('click', () => zoom(0.8));
-  document.getElementById('btn-reset-map')?.addEventListener('click', resetMap);
+
   
   document.getElementById('btn-open-diplo')?.addEventListener('click', openDiploModal);
   document.getElementById('btn-end-diplo')?.addEventListener('click', endDiplomacy);
@@ -125,99 +112,33 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('intro').classList.add('active');
 });
 
-// --- MAP INTERACTION LOGIC ---
+let rendererInitialized = false;
 
-function handleMouseDown(e) {
-  mapViewState.isPanning = true;
-  mapViewState.lastMouseX = e.clientX;
-  mapViewState.lastMouseY = e.clientY;
-  mapViewState.isDragged = false;
-}
+export function init3D() {
+  if (rendererInitialized) return;
+  const container = document.getElementById('map-container');
+  if (!container) return;
+  const { scene, camera, renderer } = initRenderer(container);
+  buildTerritories(scene);
+  initPieces(scene);
 
-function handleMouseMove(e) {
-  if (!mapViewState.isPanning) return;
-  const dx = e.clientX - mapViewState.lastMouseX;
-  const dy = e.clientY - mapViewState.lastMouseY;
-  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) mapViewState.isDragged = true;
-  mapViewState.x += dx;
-  mapViewState.y += dy;
-  mapViewState.lastMouseX = e.clientX;
-  mapViewState.lastMouseY = e.clientY;
-  updateMapTransform();
-}
+  // Wire 3D events
+  const canvas = renderer.domElement;
+  canvas.addEventListener('pointermove', (e) => {
+    handlePointerMove(e, camera, canvas);
+  });
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.button === 0) {
+      handlePointerDown(e, camera, canvas, handleTerritoryClick);
+    }
+  });
 
-function handleMouseUp() {
-  mapViewState.isPanning = false;
-}
-
-function handleWheel(e) {
-  e.preventDefault();
-  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-  zoom(zoomFactor, e.clientX, e.clientY);
-}
-
-function zoom(factor, centerX, centerY) {
-  const svg = document.getElementById('world-map');
-  const rect = svg.getBoundingClientRect();
-  centerX = centerX || rect.left + rect.width / 2;
-  centerY = centerY || rect.top + rect.height / 2;
-
-  const mouseX = centerX - rect.left;
-  const mouseY = centerY - rect.top;
-
-  const oldScale = mapViewState.scale;
-  mapViewState.scale *= factor;
-  mapViewState.scale = Math.max(0.5, Math.min(5, mapViewState.scale));
-
-  const actualFactor = mapViewState.scale / oldScale;
-  mapViewState.x = mouseX - (mouseX - mapViewState.x) * actualFactor;
-  mapViewState.y = mouseY - (mouseY - mapViewState.y) * actualFactor;
-
-  updateMapTransform();
-}
-
-function resetMap() {
-  mapViewState.scale = 1;
-  mapViewState.x = 0;
-  mapViewState.y = 0;
-  updateMapTransform();
-}
-
-function handleTouchStart(e) {
-  if (e.touches.length === 1) {
-    handleMouseDown({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
-  } else if (e.touches.length === 2) {
-    mapViewState.isPanning = false;
-    mapViewState.lastTouchDist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-  }
-}
-
-function handleTouchMove(e) {
-  if (e.touches.length === 1) {
-    handleMouseMove({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
-  } else if (e.touches.length === 2) {
-    const dist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    zoom(dist / mapViewState.lastTouchDist, midX, midY);
-    mapViewState.lastTouchDist = dist;
-  }
-}
-
-function handleTouchEnd() {
-  handleMouseUp();
+  rendererInitialized = true;
 }
 
 // --- GAME ACTIONS ---
 
 export function handleTerritoryClick(name) {
-  if (mapViewState.isDragged) return;
   if (!isMyTurn()) return;
 
   // Diplo Pick Mode
@@ -333,10 +254,12 @@ export function startGame() {
 
   document.getElementById('setup').classList.remove('active');
   document.getElementById('game').classList.add('active');
+  init3D();
   initGame();
 }
 
 export function initGameMulti() {
+  init3D();
   buildLegend();
   renderMap();
   updateHeader();

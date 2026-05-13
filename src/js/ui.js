@@ -2,10 +2,11 @@
 // UI & RENDERING
 // ============================================================
 
-import { state, multi, mapViewState } from './state.js';
-import { CONTINENTS, POSITIONS, TERRITORY_PATHS, ADJACENCY, MARITIME_ROUTES } from './config.js';
+import { state, multi } from './state.js';
+import { CONTINENTS } from './config.js';
 import { showToast, getDiePath, countTerritories, isMyTurn } from './utils.js';
-import { broadcast } from './p2p.js';
+import { syncTerritories } from './map3d.js';
+import { syncPieces } from './pieces3d.js';
 
 export function buildLegend() {
   const el = document.getElementById('continent-legend');
@@ -134,92 +135,8 @@ export function updatePhaseUI() {
 }
 
 export function renderMap() {
-  const svg = document.getElementById('world-map');
-  if (!svg) return;
-  svg.innerHTML = '';
-  
-  const viewport = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  viewport.id = 'map-viewport';
-  svg.appendChild(viewport);
-  
-  // Routes
-  const gRoutes = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  gRoutes.setAttribute('id', 'maritime-routes');
-  MARITIME_ROUTES.forEach(([a, b]) => {
-    const p1 = POSITIONS[a];
-    const p2 = POSITIONS[b];
-    if (p1 && p2) {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', p1[0]);
-      line.setAttribute('y1', p1[1]);
-      line.setAttribute('x2', p2[0]);
-      line.setAttribute('y2', p2[1]);
-      line.setAttribute('stroke', 'rgba(212,160,23,0.25)');
-      line.setAttribute('stroke-width', '1.5');
-      line.setAttribute('stroke-dasharray', '4 3');
-      gRoutes.appendChild(line);
-    }
-  });
-  viewport.appendChild(gRoutes);
-
-  // Territories
-  Object.entries(TERRITORY_PATHS).forEach(([name, path]) => {
-    const t = state.territories[name];
-    const pIdx = t.owner;
-    const player = state.players[pIdx];
-    
-    const contName = Object.keys(CONTINENTS).find(c => CONTINENTS[c].territories.includes(name));
-    const contColor = CONTINENTS[contName].color;
-    
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.setAttribute('class', 'territory ' + (state.selectedTerritory === name ? 'selected' : ''));
-    g.onclick = () => window.handleTerritoryClick(name);
-    
-    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    p.setAttribute('d', path);
-    p.setAttribute('fill', player.color);
-    p.setAttribute('stroke', contColor);
-    p.setAttribute('stroke-width', '1.5');
-    p.setAttribute('style', `filter: drop-shadow(0 0 2px ${player.color}44)`);
-    g.appendChild(p);
-
-    // Army Badge
-    const pos = POSITIONS[name];
-    if (pos) {
-      const badge = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      badge.setAttribute('transform', `translate(${pos[0]}, ${pos[1]})`);
-      
-      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('x', '-10');
-      rect.setAttribute('y', '-10');
-      rect.setAttribute('width', '20');
-      rect.setAttribute('height', '20');
-      rect.setAttribute('rx', '4');
-      rect.setAttribute('fill', 'rgba(0,0,0,0.6)');
-      rect.setAttribute('stroke', player.lightColor);
-      rect.setAttribute('stroke-width', '1');
-      badge.appendChild(rect);
-
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('dominant-baseline', 'middle');
-      text.setAttribute('fill', 'white');
-      text.setAttribute('font-size', '11');
-      text.setAttribute('font-weight', 'bold');
-      text.textContent = t.armies;
-      badge.appendChild(text);
-      g.appendChild(badge);
-    }
-    viewport.appendChild(g);
-  });
-  
-  updateMapTransform();
-}
-
-export function updateMapTransform() {
-  const viewport = document.getElementById('map-viewport');
-  if (!viewport) return;
-  viewport.setAttribute('transform', `translate(${mapViewState.x}, ${mapViewState.y}) scale(${mapViewState.scale})`);
+  syncTerritories();
+  syncPieces(state);
 }
 
 export function updateDiploPanel() {
@@ -524,7 +441,6 @@ window.buildLegend = buildLegend;
 window.updateHeader = updateHeader;
 window.updatePhaseUI = updatePhaseUI;
 window.renderMap = renderMap;
-window.updateMapTransform = updateMapTransform;
 window.updateDiploPanel = updateDiploPanel;
 window.renderSanctionsDisplay = renderSanctionsDisplay;
 window.showCombatResult = showCombatResult;
