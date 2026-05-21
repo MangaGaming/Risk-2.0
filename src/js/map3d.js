@@ -8,7 +8,6 @@ const SCALE = 1 / 45;
 const EXTRUDE_DEPTH = 0.8;
 
 const territoryMeshes = new Map();
-const outlineLines = new Map();
 let territoryGroup;
 
 const raycaster = new THREE.Raycaster();
@@ -26,7 +25,7 @@ export function buildTerritories(scene) {
     if (shapes.length === 0) continue;
 
     const shapesScaled = shapes.map(s => {
-      const pts = s.getPoints(50);
+      const pts = s.getPoints(20);
       const c = new THREE.Shape();
       c.moveTo((pts[0].x - 500) * SCALE, -(pts[0].y - 350) * SCALE);
       for (let i = 1; i < pts.length; i++) {
@@ -37,39 +36,21 @@ export function buildTerritories(scene) {
 
     const geo = new THREE.ExtrudeGeometry(shapesScaled, {
       depth: EXTRUDE_DEPTH,
-      bevelEnabled: true,
-      bevelThickness: 0.2,
-      bevelSize: 0.1,
-      bevelSegments: 3
+      bevelEnabled: false
     });
     geo.computeVertexNormals();
 
     const contName = Object.keys(CONTINENTS).find(c => CONTINENTS[c].territories.includes(name));
     const contColor = new THREE.Color(CONTINENTS[contName]?.color || '#888888');
 
-    const mat = new THREE.MeshStandardMaterial({
-      color: contColor,
-      roughness: 0.6,
-      metalness: 0.1
+    const mat = new THREE.MeshLambertMaterial({
+      color: contColor
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.userData.territoryName = name;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
     mesh.rotation.x = -Math.PI / 2;
     territoryGroup.add(mesh);
     territoryMeshes.set(name, mesh);
-
-    const edges = new THREE.EdgesGeometry(geo);
-    const lineMat = new THREE.LineBasicMaterial({
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.3
-    });
-    const line = new THREE.LineSegments(edges, lineMat);
-    line.rotation.x = -Math.PI / 2;
-    territoryGroup.add(line);
-    outlineLines.set(name, line);
   }
 
   addMaritimeRoutes(scene);
@@ -88,15 +69,12 @@ function parseSvgPath(pathData) {
 
 function createOcean() {
   const geo = new THREE.PlaneGeometry(30, 22);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x1a3a5c,
-    roughness: 0.9,
-    metalness: 0.0
+  const mat = new THREE.MeshLambertMaterial({
+    color: 0x1a3a5c
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = -EXTRUDE_DEPTH - 0.1;
-  mesh.receiveShadow = true;
   return mesh;
 }
 

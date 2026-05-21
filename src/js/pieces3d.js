@@ -20,6 +20,7 @@ const OFFSETS = [
 
 let pieceGroup;
 const pieceClusters = new Map();
+const sharedGeo = new THREE.CylinderGeometry(PIECE_RADIUS, PIECE_RADIUS * 1.2, PIECE_HEIGHT, 6);
 
 export function initPieces(scene) {
   pieceGroup = new THREE.Group();
@@ -28,6 +29,9 @@ export function initPieces(scene) {
 
 export function syncPieces(state) {
   for (const [, cluster] of pieceClusters) {
+    cluster.traverse(child => {
+      if (child.isMesh && child.material) child.material.dispose();
+    });
     pieceGroup.remove(cluster);
   }
   pieceClusters.clear();
@@ -46,15 +50,9 @@ export function syncPieces(state) {
 
     for (let i = 0; i < count; i++) {
       const [dx, dz] = OFFSETS[i];
-      const geo = new THREE.CylinderGeometry(PIECE_RADIUS, PIECE_RADIUS * 1.2, PIECE_HEIGHT, 8);
-      const mat = new THREE.MeshStandardMaterial({
-        color: playerColor,
-        roughness: 0.5,
-        metalness: 0.2
-      });
-      const piece = new THREE.Mesh(geo, mat);
+      const mat = new THREE.MeshLambertMaterial({ color: playerColor });
+      const piece = new THREE.Mesh(sharedGeo, mat);
       piece.position.set(centerX + dx, EXTRUDE_DEPTH + PIECE_HEIGHT / 2, centerZ + dz);
-      piece.castShadow = true;
       clusterGroup.add(piece);
     }
 
@@ -67,8 +65,9 @@ export function clearPieces() {
   if (pieceGroup) {
     while (pieceGroup.children.length) {
       const child = pieceGroup.children[0];
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) child.material.dispose();
+      child.traverse(c => {
+        if (c.isMesh && c.material) c.material.dispose();
+      });
       pieceGroup.remove(child);
     }
   }
