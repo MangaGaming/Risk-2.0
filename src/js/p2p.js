@@ -83,6 +83,8 @@ function handleIncomingData(data) {
       break;
     case 'START_GAME':
       state.territories = data.territories;
+      state.cardDeck = data.cardDeck;
+      state.cardsTradedTotal = data.cardsTradedTotal || 0;
       state.players[0].name = data.p1Name;
       state.players[1].name = data.p2Name;
       state.playerCount = 2;
@@ -123,6 +125,12 @@ function handleIncomingData(data) {
           addLog(`${state.players[state.currentPlayer].name} reçoit +${data.amount} armées (vengeance).`, 'system');
           window.renderMap();
        }
+       break;
+    case 'DRAW_CARD':
+       state.players[data.playerIdx].cards.push(data.card);
+       // Remove from local deck to prevent duplicate draws
+       const deckIdx = state.cardDeck.findIndex(c => c.territory === data.card.territory && c.type === data.card.type);
+       if (deckIdx !== -1) state.cardDeck.splice(deckIdx, 1);
        break;
     case 'SYNC_COMBAT':
        window.syncCombatResult(data);

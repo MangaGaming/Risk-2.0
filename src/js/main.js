@@ -243,6 +243,8 @@ export function startGame() {
     broadcast({ 
       type: 'START_GAME', 
       territories: state.territories,
+      cardDeck: state.cardDeck,
+      cardsTradedTotal: state.cardsTradedTotal,
       p1Name: state.players[0].name,
       p2Name: state.players[1].name
     });

@@ -230,14 +230,17 @@ export function syncCombatResult(data) {
   state.territories[data.atkTerr].armies -= data.atkLost;
   state.territories[data.defTerr].armies -= data.defLost;
   
-  // Show modal for both even if one is remote
   window.setupCombat(data.atkTerr, data.defTerr);
   showCombatResult(data);
   renderMap();
   
   if (state.territories[data.defTerr].armies <= 0) {
      const winner = state.territories[data.atkTerr].owner;
+     const loser = state.territories[data.defTerr].owner;
      state.territories[data.defTerr].owner = winner;
+     state.justConquered = true;
+     state.hasCapturedThisTurn = true;
+     if (window.checkWin) window.checkWin(winner, loser);
   }
 }
 

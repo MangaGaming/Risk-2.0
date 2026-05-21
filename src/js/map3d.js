@@ -56,6 +56,7 @@ export function buildTerritories(scene) {
     mesh.userData.territoryName = name;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    mesh.rotation.x = -Math.PI / 2;
     territoryGroup.add(mesh);
     territoryMeshes.set(name, mesh);
 
@@ -66,6 +67,7 @@ export function buildTerritories(scene) {
       opacity: 0.3
     });
     const line = new THREE.LineSegments(edges, lineMat);
+    line.rotation.x = -Math.PI / 2;
     territoryGroup.add(line);
     outlineLines.set(name, line);
   }
@@ -77,11 +79,9 @@ function parseSvgPath(pathData) {
   const svgText = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700"><path d="${pathData}"/></svg>`;
   const result = loader.parse(svgText);
   const shapes = [];
-  for (const path of result.paths) {
-    for (const subPath of path.subPaths) {
-      const s = subPath.toShapes(true);
-      shapes.push(...s);
-    }
+  for (const shapePath of result.paths) {
+    const s = SVGLoader.createShapes(shapePath);
+    shapes.push(...s);
   }
   return shapes;
 }
@@ -114,8 +114,8 @@ function addMaritimeRoutes(scene) {
     const p2 = POSITIONS[b];
     if (!p1 || !p2) return;
     const pts = [
-      new THREE.Vector3((p1[0] - 500) * SCALE, 0.1, -(p1[1] - 350) * SCALE),
-      new THREE.Vector3((p2[0] - 500) * SCALE, 0.1, -(p2[1] - 350) * SCALE)
+      new THREE.Vector3((p1[0] - 500) * SCALE, 0.1, (p1[1] - 350) * SCALE),
+      new THREE.Vector3((p2[0] - 500) * SCALE, 0.1, (p2[1] - 350) * SCALE)
     ];
     const geo = new THREE.BufferGeometry().setFromPoints(pts);
     const line = new THREE.Line(geo, mat);
@@ -135,6 +135,8 @@ export function syncTerritories() {
     }
   }
 }
+
+export { EXTRUDE_DEPTH };
 
 export function getTerritoryMeshes() {
   return territoryMeshes;

@@ -11,25 +11,28 @@ export function initRenderer(container) {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1a3a5c);
 
-  camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
-  camera.position.set(0, 25, 30);
+  const frustumSize = 24;
+  const aspect = w / h;
+  camera = new THREE.OrthographicCamera(
+    -frustumSize * aspect / 2, frustumSize * aspect / 2,
+    frustumSize / 2, -frustumSize / 2,
+    0.1, 1000
+  );
+  camera.position.set(16, 20, 16);
   camera.lookAt(0, 0, 0);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(w, h);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   container.prepend(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0, 0);
   controls.enableDamping = true;
   controls.dampingFactor = 0.1;
-  controls.minPolarAngle = 0.1;
-  controls.maxPolarAngle = Math.PI / 2.2;
-  controls.minDistance = 15;
-  controls.maxDistance = 60;
+  controls.enableRotate = false;
   controls.update();
 
   // Lights
@@ -51,7 +54,11 @@ export function initRenderer(container) {
   const resizeObserver = new ResizeObserver(() => {
     const w2 = container.clientWidth;
     const h2 = container.clientHeight;
-    camera.aspect = w2 / h2;
+    const aspect = w2 / h2;
+    camera.left = -frustumSize * aspect / 2;
+    camera.right = frustumSize * aspect / 2;
+    camera.top = frustumSize / 2;
+    camera.bottom = -frustumSize / 2;
     camera.updateProjectionMatrix();
     renderer.setSize(w2, h2);
   });

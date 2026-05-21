@@ -268,9 +268,15 @@ export function startTurn() {
 export function endTurn(remote = false) {
   if (!isMyTurn() && !remote) { showToast("Ce n'est pas votre tour !"); return; }
   
-  // Award card if captured
+  // Award card if captured (only draw locally; remote gets synced card)
   if (state.hasCapturedThisTurn) {
-    drawCard(state.currentPlayer);
+    if (!remote) {
+      drawCard(state.currentPlayer);
+      if (multi.active) {
+        const lastCard = state.players[state.currentPlayer].cards[state.players[state.currentPlayer].cards.length - 1];
+        broadcast({ type: 'DRAW_CARD', playerIdx: state.currentPlayer, card: lastCard });
+      }
+    }
   }
 
   if (!remote) broadcast({ type: 'END_TURN' });
@@ -465,6 +471,7 @@ export function checkWin(player, loserIdx) {
 
 // Global exports
 window.initGame = initGame;
+window.checkWin = checkWin;
 window.endTurn = endTurn;
 window.endDiplomacy = endDiplomacy;
 window.endReinforcement = endReinforcement;
