@@ -202,23 +202,51 @@ export function showCombatResult(data) {
   const modalAtkDice = document.getElementById('atk-dice-display');
   const modalDefDice = document.getElementById('def-dice-display');
   const modalResult = document.getElementById('combat-result');
+  const casualties = document.getElementById('combat-casualties');
   
   if (modalAtkDice) modalAtkDice.innerHTML = data.atkResults.map(v => getDiePath(v, state.territories[data.atkTerr].owner)).join('');
   if (modalDefDice) modalDefDice.innerHTML = data.defResults.map(v => getDiePath(v, state.territories[data.defTerr].owner)).join('');
   
+  // Update army badges
+  const atkBadge = document.getElementById('atk-army-badge');
+  const defBadge = document.getElementById('def-army-badge');
+  const currentAtk = state.territories[data.atkTerr].armies;
+  const currentDef = state.territories[data.defTerr].armies;
+  if (atkBadge) {
+    atkBadge.textContent = currentAtk;
+    if (data.atkLost > 0) atkBadge.classList.add('badge-flash');
+  }
+  if (defBadge) {
+    defBadge.textContent = currentDef;
+    if (data.defLost > 0) defBadge.classList.add('badge-flash');
+  }
+  
+  // Show casualties
+  if (casualties) {
+    let cHtml = '';
+    if (data.atkLost > 0) cHtml += `<span class="casualty atk-casualty">-${data.atkLost}</span>`;
+    if (data.atkLost > 0 && data.defLost > 0) cHtml += `<span class="casualty-sep">/</span>`;
+    if (data.defLost > 0) cHtml += `<span class="casualty def-casualty">-${data.defLost}</span>`;
+    casualties.innerHTML = cHtml;
+  }
+  
   if (modalResult) {
+    modalResult.className = 'result-text';
     if (state.territories[data.defTerr].armies <= 0) {
-      modalResult.innerHTML = `<span style="color:#27ae60; font-weight:bold;">TERRITOIRE CONQUIS !</span>`;
+      modalResult.innerHTML = `<span class="result-conquest">⚔ TERRITOIRE CONQUIS !</span>`;
+      modalResult.classList.add('result-conquest-bg');
       document.getElementById('btn-roll').style.display = 'none';
       document.getElementById('btn-stop-atk').style.display = 'none';
       document.getElementById('btn-continue-atk').style.display = 'none';
     } else if (state.territories[data.atkTerr].armies <= 1) {
-      modalResult.innerHTML = `<span style="color:#e74c3c; font-weight:bold;">OFFENSIVE BRISÉE !</span>`;
+      modalResult.innerHTML = `<span class="result-broken">💥 OFFENSIVE BRISÉE !</span>`;
+      modalResult.classList.add('result-broken-bg');
       document.getElementById('btn-roll').style.display = 'none';
       document.getElementById('btn-stop-atk').style.display = 'inline-block';
       document.getElementById('btn-continue-atk').style.display = 'none';
     } else {
-      modalResult.innerHTML = `L'attaquant perd ${data.atkLost} ⚔, le défenseur perd ${data.defLost} ⚔`;
+      modalResult.innerHTML = `<span class="result-exchange">L'attaquant perd <strong>${data.atkLost}</strong> ⚔, le défenseur perd <strong>${data.defLost}</strong> ⚔</span>`;
+      modalResult.classList.add('result-exchange-bg');
       document.getElementById('btn-roll').style.display = 'none';
       document.getElementById('btn-stop-atk').style.display = 'inline-block';
       document.getElementById('btn-continue-atk').style.display = 'inline-block';
@@ -253,16 +281,34 @@ export function setupCombat(atkTerr, defTerr) {
   
   const atk = state.players[state.territories[atkTerr].owner];
   const def = state.players[state.territories[defTerr].owner];
+  const atkArmies = state.territories[atkTerr].armies;
+  const defArmies = state.territories[defTerr].armies;
   
   document.getElementById('atk-name').textContent = atk.name;
   document.getElementById('atk-name').style.color = atk.lightColor;
-  document.getElementById('atk-terr').textContent = `${atkTerr} (${state.territories[atkTerr].armies}⚔)`;
+  document.getElementById('atk-terr').textContent = atkTerr;
+  
+  const atkBadge = document.getElementById('atk-army-badge');
+  if (atkBadge) {
+    atkBadge.textContent = atkArmies;
+    atkBadge.style.background = `linear-gradient(135deg, ${atk.color}, ${atk.lightColor})`;
+  }
   
   document.getElementById('def-name').textContent = def.name;
   document.getElementById('def-name').style.color = def.lightColor;
-  document.getElementById('def-terr').textContent = `${defTerr} (${state.territories[defTerr].armies}⚔)`;
+  document.getElementById('def-terr').textContent = defTerr;
+  
+  const defBadge = document.getElementById('def-army-badge');
+  if (defBadge) {
+    defBadge.textContent = defArmies;
+    defBadge.style.background = `linear-gradient(135deg, ${def.color}, ${def.lightColor})`;
+  }
+  
+  const casualties = document.getElementById('combat-casualties');
+  if (casualties) casualties.innerHTML = '';
   
   document.getElementById('combat-result').textContent = "Prêt au combat ?";
+  document.getElementById('combat-result').className = 'result-text';
   document.getElementById('atk-dice-display').innerHTML = "";
   document.getElementById('def-dice-display').innerHTML = "";
   
@@ -356,18 +402,25 @@ export function renderCardsModal() {
   const typeName = { infantry: 'Infanterie', cavalry: 'Cavalerie', artillery: 'Artillerie', wild: 'Joker' };
   const value = window.getCardSetValue();
 
-  document.getElementById('cards-value-display').textContent = `Valeur du prochain échange : ${value} armée(s)`;
+  const valueDisplay = document.getElementById('cards-value-display');
+  const valueAmount = document.getElementById('cards-value-amount');
+  if (valueAmount) valueAmount.textContent = value;
+  if (valueDisplay) valueDisplay.className = 'cards-value-banner';
 
   container.innerHTML = cards.map((card, i) => {
     const emoji = typeEmoji[card.type] || '🃏';
     const tname = typeName[card.type] || 'Joker';
     const terr = card.territory || '—';
     const owned = card.territory && state.territories[card.territory]?.owner === p;
-    return `<div class="card-item" data-index="${i}" onclick="window.toggleCardSelect(${i})">
+    const typeClass = 'card-type-' + (card.type || 'wild');
+    return `<div class="card-item ${typeClass}" data-index="${i}" onclick="window.toggleCardSelect(${i})">
+      <div class="card-item-badge ${typeClass}-badge">${emoji}</div>
+      <div class="card-item-content">
+        <div class="card-item-terr">${terr}</div>
+        <div class="card-item-type">${tname}</div>
+        ${owned ? '<div class="card-item-owned">★ Possédé</div>' : ''}
+      </div>
       <div class="card-item-check">✓</div>
-      <div class="card-item-terr">${terr}</div>
-      <div class="card-item-type">${emoji} ${tname}</div>
-      ${owned ? '<div class="card-item-owned">★ Possédé</div>' : ''}
     </div>`;
   }).join('');
 
@@ -413,9 +466,11 @@ function updateCardsSelection() {
     el.classList.toggle('selected', selected.includes(idx));
   });
 
+  info.className = 'cards-trade-info';
   if (selected.length !== 3) {
     tradeBtn.disabled = true;
     info.textContent = `Sélectionnez 3 cartes (${selected.length}/3)`;
+    info.classList.add('info-pending');
     return;
   }
 
@@ -432,10 +487,14 @@ function updateCardsSelection() {
     const remaining = Math.max(0, 2 - state.territoryBonusUsed);
     const displayBonus = Math.min(bonusTotal, remaining);
     const bonusText = displayBonus > 0 ? ` (+${displayBonus} bonus territoire)` : '';
-    info.textContent = `Set valide ! Valeur : ${val} armée(s)${bonusText}`;
+    info.innerHTML = `<span class="info-valid-icon">✓</span> Set valide — <strong>${val}</strong> armée(s)${bonusText}`;
+    info.classList.add('info-valid');
+    const valueAmount = document.getElementById('cards-value-amount');
+    if (valueAmount) valueAmount.textContent = val + displayBonus;
   } else {
     tradeBtn.disabled = true;
-    info.textContent = 'Ces 3 cartes ne forment pas un set valide.';
+    info.innerHTML = `<span class="info-invalid-icon">✗</span> Ces 3 cartes ne forment pas un set valide.`;
+    info.classList.add('info-invalid');
   }
 }
 
