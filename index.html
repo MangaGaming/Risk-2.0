@@ -7,9 +7,512 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#5c3317">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/src/css/style.css">
 </head>
 <body>
-<div id="root"></div>
-<script type="module" src="/src/main.tsx"></script>
+<div id="toast">Message</div>
+
+<!-- ===== INTRO ===== -->
+<div id="intro" class="screen active">
+  <div class="intro-ornament tr">✦</div>
+  <div class="intro-ornament bl">✦</div>
+  <div class="intro-ornament br">✦</div>
+
+  <div class="intro-emblem">
+    <div class="intro-emblem-icon">⚔</div>
+  </div>
+
+  <div class="intro-title">RISK</div>
+
+  <div class="intro-divider">
+    <div class="intro-divider-line"></div>
+    <div class="intro-divider-gem">◆</div>
+    <div class="intro-divider-gem">◆</div>
+    <div class="intro-divider-gem">◆</div>
+    <div class="intro-divider-line"></div>
+  </div>
+
+  <div class="intro-subtitle">Le Jeu Mondial de la Stratégie</div>
+
+  <br>
+
+  <div style="display:flex; flex-direction:column; gap:0.5rem; width: 380px;">
+    <button class="intro-btn" id="btn-start-intro">
+      ⚔ &nbsp; Partie Locale
+    </button>
+    <button class="intro-btn" id="btn-multi-intro" style="font-size: 0.8rem; background: linear-gradient(180deg, #1a3320 0%, #155228 50%, #0d3618 100%); border-top-color: #2a4a30;">
+      🤝 &nbsp; Partie en Ligne (P2P)
+    </button>
+  </div>
+</div>
+
+<!-- ===== SETUP ===== -->
+<div id="setup" class="screen">
+  <div class="setup-title">Préparation</div>
+  <div class="setup-subtitle">Choisissez vos généraux</div>
+
+  <div class="player-count-select" style="display:flex; justify-content:center; gap:1rem; margin-bottom:2rem;">
+    <button class="count-btn active" id="btn-count-2">2 Joueurs</button>
+    <button class="count-btn" id="btn-count-3">3 Joueurs</button>
+  </div>
+
+  <div class="player-setup">
+    <div class="player-card p1">
+      <div class="player-crest">⚔</div>
+      <h3>Empire Rouge</h3>
+      <input type="text" id="p1-name" placeholder="Général 1" value="Général Rouge">
+    </div>
+
+    <div class="player-card p2">
+      <div class="player-crest">🛡</div>
+      <h3>Union Bleue</h3>
+      <input type="text" id="p2-name" placeholder="Général 2" value="Général Bleu">
+    </div>
+
+    <div class="player-card p3" id="p3-setup-card" style="display:none;">
+      <div class="player-crest">⚜</div>
+      <h3>Ordre Vert</h3>
+      <input type="text" id="p3-name" placeholder="Général 3" value="Général Vert">
+    </div>
+  </div>
+
+  <button class="start-btn" id="btn-start-battle">Commencer la Bataille</button>
+</div>
+
+<!-- ===== GAME ===== -->
+<div id="game" class="screen">
+  <div id="map-container">
+    <div class="map-select-instr" id="map-select-instr">Cliquez sur un territoire sur la carte</div>
+
+    <!-- HUD Top: Turn + Player Stats -->
+    <div id="hud-top">
+      <div class="hud-left">
+        <div class="turn-banner">
+          <div class="turn-player-dot" id="turn-dot"></div>
+          <div class="turn-player" id="turn-player">---</div>
+        </div>
+        <div class="turn-phase" id="turn-phase">Chargement...</div>
+      </div>
+      <div class="hud-right">
+        <div class="hud-stats">
+          <div class="stat-card p1" id="stat-p1">
+            <div class="stat-card-name" id="p1-name-label">Joueur 1</div>
+            <div class="stat-card-val" id="p1-territories">0</div>
+          </div>
+          <div class="stat-separator">vs</div>
+          <div class="stat-card p2" id="stat-p2">
+            <div class="stat-card-name" id="p2-name-label">Joueur 2</div>
+            <div class="stat-card-val" id="p2-territories">0</div>
+          </div>
+          <div class="stat-separator p3-only" style="display:none;">vs</div>
+          <div class="stat-card p3" id="stat-p3" style="display:none;">
+            <div class="stat-card-name" id="p3-name-label">Joueur 3</div>
+            <div class="stat-card-val" id="p3-territories">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HUD Bottom: Controls -->
+    <div id="hud-bottom">
+      <div class="hud-bottom-left">
+        <div id="section-diplo">
+          <div class="hud-section-title">Diplomatie</div>
+          <div id="diplo-embargo-warn" style="display:none;"></div>
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+            <button class="action-btn success" id="btn-open-diplo" style="flex:1; min-width:120px;">🤝 Négocier un traité</button>
+            <button class="action-btn" id="btn-end-diplo" style="flex:0;">⏭ Passer</button>
+          </div>
+          <div id="pact-list-panel"></div>
+          <div id="no-pacts-msg" style="font-size:0.6rem; opacity:0.6; text-align:center;">Aucun traité actif</div>
+        </div>
+
+        <div class="phase-steps" style="margin:0.3rem 0;">
+          <div class="phase-step" id="ps-diplo"></div>
+          <div class="phase-step" id="ps-reinf"></div>
+          <div class="phase-step" id="ps-attack"></div>
+          <div class="phase-step" id="ps-move"></div>
+        </div>
+        <div id="phase-desc" style="font-size:0.7rem; color:var(--text-parchment); min-height:2em;">...</div>
+
+        <div id="section-reinf" style="display:none;">
+          <div class="reinf-token" id="reinf-badge">--</div>
+          <button class="action-btn primary" id="btn-end-reinf" disabled style="margin-top:0.3rem;">Valider les renforts</button>
+        </div>
+
+        <div id="section-attack" style="display:none;">
+          <div id="attack-info" style="font-size:0.65rem; color:var(--parchment-shadow); margin-bottom:0.4rem;">Sélectionnez un de vos territoires (3+ armées) puis un territoire ennemi adjacent.</div>
+          <button class="action-btn danger" id="btn-end-attack">Terminer les attaques</button>
+        </div>
+
+        <div id="section-move" style="display:none;">
+          <div id="move-info" style="font-size:0.65rem; color:var(--parchment-shadow);"></div>
+          <button class="action-btn success" id="btn-end-turn" style="margin-top:0.3rem;">Fin du tour</button>
+        </div>
+
+        <div style="display:flex; gap:0.4rem; margin-top:0.3rem;">
+          <button class="action-btn" id="btn-show-cards" style="flex:1;">📜 Cartes (0)</button>
+        </div>
+      </div>
+
+      <div class="hud-bottom-right">
+        <div class="hud-section-title">Chronique de guerre</div>
+        <div id="log-entries"></div>
+      </div>
+    </div>
+
+    <!-- Hidden panels (shown conditionally by JS) -->
+    <div id="section-terr-info" style="display:none;">
+      <div id="terr-detail"></div>
+    </div>
+    <div id="sanctions-display" style="display:none;"></div>
+    <div id="section-dice" style="display:none;">
+      <div class="hud-section-title">Dernier Combat</div>
+      <div id="dice-display" class="dice-history-view"></div>
+    </div>
+    <div id="continent-legend" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ===== COMBAT MODAL ===== -->
+<div class="modal-overlay" id="combat-modal">
+  <div class="modal modal-combat" style="max-width:550px;">
+    <div class="modal-header modal-header-combat">
+      <div class="modal-header-icon">⚔</div>
+      <h2>Champ de Bataille</h2>
+    </div>
+    <div class="modal-body">
+      <div class="combat-area" id="combat-area">
+        <div class="combat-side attacker">
+          <div class="combat-side-header">
+            <div class="combat-side-name" id="atk-name" style="color:var(--p1);">Attaquant</div>
+            <div class="combat-side-terr" id="atk-terr"></div>
+          </div>
+          <div class="combat-army-badge" id="atk-army-badge">0</div>
+          <div class="dice-selector-label">Dés d'assaut</div>
+          <div id="atk-dice-btns"></div>
+          <div class="dice-container" id="atk-dice-display"></div>
+        </div>
+
+        <div class="vs-badge">
+          <div class="vs-badge-ring">
+            <span class="vs-text">VS</span>
+          </div>
+          <div class="vs-divider"></div>
+        </div>
+
+        <div class="combat-side defender">
+          <div class="combat-side-header">
+            <div class="combat-side-name" id="def-name" style="color:var(--p2);">Défenseur</div>
+            <div class="combat-side-terr" id="def-terr"></div>
+          </div>
+          <div class="combat-army-badge" id="def-army-badge">0</div>
+          <div class="dice-selector-label">Dés de défense</div>
+          <div id="def-dice-btns"></div>
+          <div class="dice-container" id="def-dice-display"></div>
+        </div>
+      </div>
+
+      <div class="combat-casualties" id="combat-casualties"></div>
+
+      <div class="result-text" id="combat-result"></div>
+
+      <div class="modal-btns combat-buttons">
+        <button class="modal-btn combat-roll-btn" id="btn-roll">🎲 Lancer les dés</button>
+        <button class="modal-btn combat-continue-btn" id="btn-continue-atk" style="display:none;">⚔ Attaquer encore</button>
+        <button class="modal-btn combat-stop-btn" id="btn-stop-atk" style="display:none;">✓ Stopper</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MOVE MODAL ===== -->
+<div class="modal-overlay" id="move-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-icon">🚶</div>
+      <h2 class="modal-title" style="margin-bottom:1rem;">Déplacement d'armées</h2>
+    </div>
+    <div class="modal-body">
+      <div id="move-modal-info" style="margin-bottom:0.75rem; font-size:0.9rem; color:var(--text-dark); text-align:center;"></div>
+      <div style="text-align:center; margin-bottom:1rem;">
+        <label style="font-family:'Cinzel',serif; font-size:0.75rem;">Armées à déplacer : <span class="move-count-badge" id="move-count-display">1</span></label>
+        <input type="range" id="move-slider" min="1" max="1" value="1" style="width:100%; margin-top:10px;">
+      </div>
+      <div class="modal-btns">
+        <button class="modal-btn primary" id="btn-confirm-move">Déplacer</button>
+        <button class="modal-btn" id="btn-cancel-move">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DIPLO MODAL ===== -->
+<div class="modal-overlay" id="diplo-modal">
+  <div class="modal modal-diplo" style="max-width:650px;">
+    <div class="modal-header modal-header-diplo">
+      <div class="modal-header-icon">🤝</div>
+      <h2>Cabinet Diplomatique</h2>
+    </div>
+    <div class="modal-body" style="padding:1.25rem;">
+      <div class="diplo-tabs">
+        <div class="diplo-tab active" id="tab-btn-new">✒ Nouveau Traité</div>
+        <div class="diplo-tab" id="tab-btn-active">📜 Traités Actifs</div>
+        <div class="diplo-tab" id="tab-btn-history">🕰 Archives</div>
+      </div>
+
+      <div id="diplo-tab-new" class="diplo-tab-content active">
+        <div id="opp-selector-group" style="display:none;">
+          <label class="diplo-field-label">Négocier avec :</label>
+          <div id="diplo-opponents" style="display:flex; gap:10px; margin-bottom:1rem;"></div>
+        </div>
+
+        <div class="pact-type-grid">
+          <div class="pact-type-btn selected" id="type-peace">
+            <span class="pact-icon">🕊</span>
+            <span class="pact-label">Paix</span>
+          </div>
+          <div class="pact-type-btn" id="type-territory">
+            <span class="pact-icon">🗺</span>
+            <span class="pact-label">Échange</span>
+          </div>
+          <div class="pact-type-btn" id="type-alliance">
+            <span class="pact-icon">🛡</span>
+            <span class="pact-label">Alliance</span>
+          </div>
+        </div>
+
+        <div class="diplo-form-body">
+          <div id="pact-form-peace">
+            <div class="diplo-field">
+              <label class="diplo-field-label">Durée du pacte de non-agression</label>
+              <select id="pact-peace-duration" class="diplo-select">
+                <option value="2">2 tours</option>
+                <option value="3" selected>3 tours</option>
+                <option value="5">5 tours</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="pact-form-territory" style="display:none;">
+            <div class="terr-exchange-grid">
+               <div class="terr-exchange-side">
+                  <label class="diplo-field-label">Votre territoire</label>
+                  <div class="terr-exchange-row">
+                    <select id="pact-give-terr" class="diplo-select"></select>
+                    <button class="diplo-target-btn" id="btn-pick-give">📍</button>
+                  </div>
+               </div>
+               <div class="exchange-arrow">⇄</div>
+               <div class="terr-exchange-side">
+                  <label class="diplo-field-label">Territoire reçu</label>
+                  <div class="terr-exchange-row">
+                    <select id="pact-recv-terr" class="diplo-select"></select>
+                    <button class="diplo-target-btn" id="btn-pick-recv">📍</button>
+                  </div>
+               </div>
+            </div>
+          </div>
+
+          <div id="pact-form-alliance" style="display:none;">
+            <div class="diplo-field">
+              <label class="diplo-field-label">Durée de l'alliance militaire</label>
+              <select id="pact-alliance-duration" class="diplo-select">
+                <option value="2">2 tours</option>
+                <option value="3" selected>3 tours</option>
+                <option value="5">5 tours</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="diplo-field">
+            <label class="diplo-field-label">Sanction en cas de trahison</label>
+            <div class="sanction-grid">
+              <div class="sanction-option selected" id="sanction-malus">
+                <div class="sanction-icon-wrap"><span class="sanction-icon">⚔</span></div>
+                <div>
+                  <div class="sanc-title">Malus Militaire</div>
+                  <div class="sanc-desc">-3 renforts au prochain tour</div>
+                </div>
+              </div>
+              <div class="sanction-option" id="sanction-embargo">
+                <div class="sanction-icon-wrap"><span class="sanction-icon">🚫</span></div>
+                <div>
+                  <div class="sanc-title">Embargo</div>
+                  <div class="sanc-desc">2 tours sans diplomatie</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="diplo-field">
+            <label class="diplo-field-label">Note diplomatique (facultatif)</label>
+            <input type="text" id="pact-note" class="diplo-input" placeholder="Arguments diplomatiques..." maxlength="50">
+          </div>
+
+          <div class="modal-btns diplo-buttons">
+            <button class="modal-btn diplo-propose-btn" id="btn-propose-pact">📜 Proposer le traité</button>
+            <button class="modal-btn diplo-close-btn" id="btn-close-diplo">Quitter</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="diplo-tab-active" class="diplo-tab-content">
+        <div id="modal-pact-list" class="diplo-pact-list"></div>
+        <div id="modal-no-pacts" class="diplo-empty-msg">Aucun traité actif pour le moment.</div>
+        <div class="modal-btns diplo-buttons" style="margin-top:1rem;">
+          <button class="modal-btn diplo-close-btn" id="btn-close-diplo-active">Fermer</button>
+        </div>
+      </div>
+
+      <div id="diplo-tab-history" class="diplo-tab-content">
+        <div id="diplo-history-list" class="diplo-pact-list"></div>
+        <div id="diplo-no-history" class="diplo-empty-msg">Les archives diplomatiques sont vides.</div>
+        <div class="modal-btns diplo-buttons" style="margin-top:1rem;">
+          <button class="modal-btn diplo-close-btn" id="btn-close-diplo-history">Fermer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== NEGOTIATION MODAL (Online) ===== -->
+<div class="modal-overlay" id="negotiation-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title">Proposition de Traité</div>
+    <div class="modal-body">
+      <div style="font-family:'Cinzel',serif; font-size:0.75rem; color:var(--parchment-shadow); text-align:center; text-transform:uppercase; margin-bottom:1rem;">
+        Offre reçue de <span id="negoc-opp-name" style="color:var(--gold);">l'adversaire</span>
+      </div>
+      
+      <div class="pact-card" style="border-left:none; background:rgba(212,160,23,0.1); padding:1rem; margin-bottom:1.5rem;">
+        <div class="pact-type" id="negoc-pact-type" style="font-size:0.8rem; margin-bottom:0.5rem;">TYPE</div>
+        <div class="pact-body" id="negoc-pact-body" style="font-size:0.9rem; margin-bottom:0.5rem;">Détails...</div>
+        <div class="pact-turns" id="negoc-pact-duration" style="font-size:0.75rem;">Durée : --</div>
+      </div>
+
+      <div style="font-size:0.75rem; color:var(--parchment-shadow); font-style:italic; margin-bottom:1.5rem; text-align:center;" id="negoc-pact-note">
+        "Note de l'adversaire..."
+      </div>
+
+      <div class="modal-btns">
+        <button class="modal-btn battle-btn" id="btn-accept-treaty">🤝 Accepter le traité</button>
+        <button class="modal-btn" id="btn-reject-treaty">🚫 Refuser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SANCTION MODAL ===== -->
+<div class="modal-overlay" id="sanction-modal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title">⚖ Jugement de Trahison</div>
+    <div class="modal-body">
+      <div id="sanction-breach-desc" style="text-align:center; margin-bottom:1.5rem; line-height:1.5; font-size:0.9rem;">
+        Un traité a été rompu. Choisissez la sanction.
+      </div>
+
+      <div class="form-group">
+        <label>Sélectionnez la sanction à infliger :</label>
+        <div class="sanction-grid">
+          <div class="sanction-option selected" id="sanc-opt-malus">
+            <div class="sanc-title">⚔ Malus Militaire</div>
+            <div class="sanc-desc">-3 renforts au prochain tour</div>
+          </div>
+          <div class="sanction-option" id="sanc-opt-embargo">
+            <div class="sanc-title">🚫 Embargo</div>
+            <div class="sanc-desc">3 tours sans diplomatie</div>
+          </div>
+          <div class="sanction-option" id="sanc-opt-vengeance">
+            <div class="sanc-title">🛡 Vengeance</div>
+            <div class="sanc-desc">+2 armées immédiates</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-btns" style="margin-top:2rem;">
+        <button class="modal-btn danger" id="btn-apply-sanction">⚖ Appliquer la sanction</button>
+        <button class="modal-btn" id="btn-dismiss-sanction">🕊 Pardonner la trahison</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CARDS MODAL ===== -->
+<div class="modal-overlay" id="cards-modal">
+  <div class="modal modal-cards" style="max-width:560px;">
+    <div class="modal-header modal-header-cards">
+      <div class="modal-header-icon">📜</div>
+      <h2>Cartes de RISK</h2>
+    </div>
+    <div class="modal-body">
+      <div id="cards-value-display" class="cards-value-banner">
+        Valeur du prochain échange : <span id="cards-value-amount">--</span> armée(s)
+      </div>
+      <div id="cards-container" class="cards-grid">
+      </div>
+      <div id="trade-info" class="cards-trade-info">
+        Sélectionnez 3 cartes pour former un set.
+      </div>
+      <div class="modal-btns cards-buttons">
+        <button class="modal-btn cards-trade-btn" id="btn-trade-cards" disabled>📜 Échanger</button>
+        <button class="modal-btn cards-pass-btn" id="btn-pass-trade">✓ Passer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WIN SCREEN ===== -->
+<div class="modal-overlay" id="win-screen-overlay">
+</div>
+
+<div id="win-screen" class="screen" style="display:none; flex-direction:column; align-items:center; justify-content:center;">
+    <div class="win-content">
+        <div class="win-title" id="win-title">VICTOIRE !</div>
+        <div class="win-subtitle" id="win-subtitle">Joueur a conquis le monde.</div>
+        <br><br>
+        <button class="start-btn" id="btn-replay">⚔ REJOUER</button>
+    </div>
+</div>
+
+<!-- ===== MULTIPLAYER MODAL ===== -->
+<div class="modal-overlay" id="multi-modal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title">Mode Multijoueur</div>
+    <div class="modal-body">
+      <div id="multi-status" style="font-size:0.85rem; color:var(--parchment-shadow); margin-bottom:1rem; font-style:italic; text-align:center;">
+        Connectez-vous via PeerJS sans serveur central.
+      </div>
+
+      <div id="multi-initial" style="display:flex; flex-direction:column; gap:0.8rem;">
+        <button class="modal-btn primary" id="btn-host-game">🏠 Héberger une partie</button>
+        <div style="font-family:'Cinzel',serif; font-size:0.6rem; color:var(--parchment-shadow); text-align:center;">OU</div>
+        <div style="display:flex; gap:0.5rem;">
+          <input type="text" id="join-id" placeholder="ID de l'hôte" style="flex:1; background:rgba(255,255,255,0.4); border:1px solid var(--border-gold); color:var(--text-dark); padding:0.5rem; font-family:'Cinzel',serif; font-size:0.8rem; text-align:center; outline:none;">
+          <button class="modal-btn" id="btn-join-game">🤝 Rejoindre</button>
+        </div>
+      </div>
+
+      <div id="multi-wait" style="display:none; text-align:center; padding:1rem;">
+        <div style="font-family:'Cinzel',serif; font-size:0.75rem; color:var(--text-dark); margin-bottom:0.8rem;">VOTRE ID DE CONNEXION :</div>
+        <div id="my-id-display" style="font-family:'Cinzel',serif; font-size:2rem; letter-spacing:0.2em; color:var(--gold); margin-bottom:1rem; background:rgba(0,0,0,0.1); padding:0.5rem; border:1px dashed var(--gold-dark);">----</div>
+        <div style="font-size:0.75rem; color:var(--parchment-shadow);">Partagez ce code avec votre adversaire.</div>
+      </div>
+
+      <div id="multi-connected" style="display:none; text-align:center; padding:1rem;">
+        <div style="font-family:'Cinzel',serif; font-size:1rem; color:var(--gold); margin-bottom:0.5rem;">CONNEXION ÉTABLIE !</div>
+        <div id="opp-name-display" style="font-size:0.85rem; color:var(--text-dark);">Adversaire prêt à la bataille.</div>
+        <br>
+        <button class="modal-btn primary" id="btn-multi-setup" style="width:100%;">⚙ Préparer les armées</button>
+      </div>
+
+      <div class="modal-btns" style="margin-top:1.5rem;">
+        <button class="modal-btn" id="btn-close-multi">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/src/js/main.js"></script>
 </body>
 </html>

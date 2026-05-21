@@ -3,7 +3,3 @@ dist/
 .DS_Store
 *.log
 .env
-data/
-formatted_config.js
-formatted_config.txt
-listing.txt

@@ -1,0 +1,16 @@
+- generic [ref=e17]:
+  - heading "Nouvelle Partie" [level=2] [ref=e18]
+  - paragraph [ref=e19]: Choisissez vos commandants
+  - generic [ref=e20]:
+    - button "2 Joueurs" [ref=e21] [cursor=pointer]
+    - button "3 Joueurs" [ref=e22] [cursor=pointer]
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]: ⚔
+      - heading "Joueur 1" [level=3] [ref=e26]
+      - textbox "Rouge" [ref=e27]
+    - generic [ref=e28]:
+      - generic [ref=e29]: 🛡
+      - heading "Joueur 2" [level=3] [ref=e30]
+      - textbox "Bleu" [ref=e31]
+  - button "Commencer la Bataille" [ref=e32] [cursor=pointer]
