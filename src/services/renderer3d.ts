@@ -1,10 +1,10 @@
-import * as THREE from 'three';
+import { Scene, OrthographicCamera, WebGLRenderer, Color, AmbientLight, DirectionalLight, MOUSE } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 export interface Renderer3D {
-  scene: THREE.Scene;
-  camera: THREE.OrthographicCamera;
-  renderer: THREE.WebGLRenderer;
+  scene: Scene;
+  camera: OrthographicCamera;
+  renderer: WebGLRenderer;
   controls: OrbitControls;
   dispose: () => void;
 }
@@ -13,13 +13,13 @@ export function initRenderer(container: HTMLElement): Renderer3D {
   const w = container.clientWidth;
   const h = container.clientHeight;
 
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a3a5c);
+  const scene = new Scene();
+  scene.background = new Color(0x1a3a5c);
 
   const frustumSize = 24;
   const aspect = w / h;
 
-  const camera = new THREE.OrthographicCamera(
+  const camera = new OrthographicCamera(
     -frustumSize * aspect * 0.5,
     frustumSize * aspect * 0.5,
     frustumSize * 0.5,
@@ -30,47 +30,36 @@ export function initRenderer(container: HTMLElement): Renderer3D {
   camera.position.set(16, 20, 16);
   camera.lookAt(0, 0, 0);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new WebGLRenderer({ antialias: false });
   renderer.setSize(w, h);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.setPixelRatio(1);
   container.prepend(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0, 0);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.1;
+  controls.enableDamping = false;
   controls.enableRotate = false;
   controls.mouseButtons = {
-    LEFT: THREE.MOUSE.PAN,
-    MIDDLE: THREE.MOUSE.DOLLY,
-    RIGHT: THREE.MOUSE.PAN,
+    LEFT: MOUSE.PAN,
+    MIDDLE: MOUSE.DOLLY,
+    RIGHT: MOUSE.PAN,
   };
   controls.update();
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  const ambient = new AmbientLight(0xffffff, 0.5);
   scene.add(ambient);
 
-  const mainLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  const mainLight = new DirectionalLight(0xffffff, 0.9);
   mainLight.position.set(20, 30, 20);
-  mainLight.castShadow = true;
-  mainLight.shadow.mapSize.width = 1024;
-  mainLight.shadow.mapSize.height = 1024;
   scene.add(mainLight);
 
-  const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+  const fillLight = new DirectionalLight(0x8888ff, 0.3);
   fillLight.position.set(-20, 10, -20);
   scene.add(fillLight);
 
-  let animationId: number | null = null;
-
-  function animate() {
-    animationId = requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  animate();
+  const renderOnce = () => renderer.render(scene, camera);
+  renderOnce();
+  controls.addEventListener('change', renderOnce);
 
   const resizeObserver = new ResizeObserver(() => {
     const w2 = container.clientWidth;
@@ -82,6 +71,7 @@ export function initRenderer(container: HTMLElement): Renderer3D {
     camera.bottom = -frustumSize * 0.5;
     camera.updateProjectionMatrix();
     renderer.setSize(w2, h2);
+    renderOnce();
   });
   resizeObserver.observe(container);
 
@@ -91,7 +81,7 @@ export function initRenderer(container: HTMLElement): Renderer3D {
     renderer,
     controls,
     dispose: () => {
-      if (animationId !== null) cancelAnimationFrame(animationId);
+      controls.removeEventListener('change', renderOnce);
       resizeObserver.disconnect();
       renderer.dispose();
       if (renderer.domElement.parentNode) {
