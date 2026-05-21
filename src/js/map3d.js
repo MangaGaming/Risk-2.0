@@ -51,6 +51,11 @@ export function buildTerritories(scene) {
     mesh.rotation.x = -Math.PI / 2;
     territoryGroup.add(mesh);
     territoryMeshes.set(name, mesh);
+
+    const edges = new THREE.EdgesGeometry(geo);
+    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+    line.rotation.x = -Math.PI / 2;
+    territoryGroup.add(line);
   }
 
   addMaritimeRoutes(scene);
