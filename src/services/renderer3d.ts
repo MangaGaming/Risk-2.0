@@ -34,7 +34,7 @@ export function initRenderer(container: HTMLElement): Renderer3D {
   renderer.setSize(w, h);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   container.prepend(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);

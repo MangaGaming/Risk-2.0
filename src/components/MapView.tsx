@@ -14,7 +14,7 @@ export default function MapView({ onTerritoryClick }: MapViewProps) {
     : null;
 
   return (
-    <div id="map-container" style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}>
+    <>
       <div
         style={{
           position: 'absolute',
@@ -27,7 +27,8 @@ export default function MapView({ onTerritoryClick }: MapViewProps) {
           padding: '1.5rem',
           minWidth: '280px',
           textAlign: 'center',
-          pointerEvents: 'auto',
+          pointerEvents: 'none',
+          zIndex: 10,
         }}
       >
         {selTerr && state.selectedTerritory ? (
@@ -62,7 +63,7 @@ export default function MapView({ onTerritoryClick }: MapViewProps) {
       <div
         style={{
           position: 'absolute',
-          bottom: '1rem',
+          bottom: '4rem',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
@@ -71,6 +72,7 @@ export default function MapView({ onTerritoryClick }: MapViewProps) {
           justifyContent: 'center',
           maxWidth: '90%',
           pointerEvents: 'auto',
+          zIndex: 10,
         }}
       >
         {Object.keys(state.territories).map((name) => {
@@ -98,6 +100,6 @@ export default function MapView({ onTerritoryClick }: MapViewProps) {
           );
         })}
       </div>
-    </div>
+    </>
   );
 }
