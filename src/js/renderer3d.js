@@ -33,6 +33,11 @@ export function initRenderer(container) {
   controls.enableDamping = true;
   controls.dampingFactor = 0.1;
   controls.enableRotate = false;
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.PAN,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.PAN
+  };
   controls.update();
 
   // Lights

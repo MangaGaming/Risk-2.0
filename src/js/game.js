@@ -18,14 +18,12 @@ export function initGame(isMultiHost = false) {
   const n = state.playerCount;
 
   if (n === 2) {
-    // Rules for 2 players: 14 territories each, 14 for neutral
     shuffled.forEach((name, i) => {
-      const owner = i % 3; // 0: Player 1, 1: Player 2, 2: Neutral
-      state.territories[name] = { owner: (owner === 2 ? 3 : owner), armies: 1 };
+      const owner = i % n;
+      state.territories[name] = { owner, armies: 1 };
     });
 
-    // 40 armies each (including neutral)
-    [0, 1, 3].forEach(p => {
+    for (let p = 0; p < n; p++) {
       const myTerrs = Object.entries(state.territories).filter(([,t]) => t.owner === p);
       let remaining = 40 - myTerrs.length;
       while (remaining > 0) {
@@ -33,7 +31,7 @@ export function initGame(isMultiHost = false) {
         state.territories[myTerrs[idx][0]].armies++;
         remaining--;
       }
-    });
+    }
   } else {
     shuffled.forEach((name, i) => {
       const owner = i % n;

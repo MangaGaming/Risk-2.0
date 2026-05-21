@@ -81,108 +81,96 @@
 
 <!-- ===== GAME ===== -->
 <div id="game" class="screen">
-  <div id="header">
-    <div class="header-logo">RISK</div>
-    
-    <div class="header-center">
-      <div class="turn-banner">
-        <div class="turn-player-dot" id="turn-dot"></div>
-        <div class="turn-player" id="turn-player">---</div>
+  <div id="map-container">
+    <div class="map-select-instr" id="map-select-instr">Cliquez sur un territoire sur la carte</div>
+
+    <!-- HUD Top: Turn + Player Stats -->
+    <div id="hud-top">
+      <div class="hud-left">
+        <div class="turn-banner">
+          <div class="turn-player-dot" id="turn-dot"></div>
+          <div class="turn-player" id="turn-player">---</div>
+        </div>
+        <div class="turn-phase" id="turn-phase">Chargement...</div>
       </div>
-      <div class="turn-phase" id="turn-phase">Chargement...</div>
+      <div class="hud-right">
+        <div class="hud-stats">
+          <div class="stat-card p1" id="stat-p1">
+            <div class="stat-card-name" id="p1-name-label">Joueur 1</div>
+            <div class="stat-card-val" id="p1-territories">0</div>
+          </div>
+          <div class="stat-separator">vs</div>
+          <div class="stat-card p2" id="stat-p2">
+            <div class="stat-card-name" id="p2-name-label">Joueur 2</div>
+            <div class="stat-card-val" id="p2-territories">0</div>
+          </div>
+          <div class="stat-separator p3-only" style="display:none;">vs</div>
+          <div class="stat-card p3" id="stat-p3" style="display:none;">
+            <div class="stat-card-name" id="p3-name-label">Joueur 3</div>
+            <div class="stat-card-val" id="p3-territories">0</div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="header-stats">
-      <div class="stat-card p1" id="stat-p1">
-        <div class="stat-card-name" id="p1-name-label">Joueur 1</div>
-        <div class="stat-card-val" id="p1-territories">0</div>
-        <div class="stat-card-sub">Territoires</div>
-      </div>
-      <div class="stat-separator">vs</div>
-      <div class="stat-card p2" id="stat-p2">
-        <div class="stat-card-name" id="p2-name-label">Joueur 2</div>
-        <div class="stat-card-val" id="p2-territories">0</div>
-        <div class="stat-card-sub">Territoires</div>
-      </div>
-      <div class="stat-separator p3-only" style="display:none;">vs</div>
-      <div class="stat-card p3" id="stat-p3" style="display:none;">
-        <div class="stat-card-name" id="p3-name-label">Joueur 3</div>
-        <div class="stat-card-val" id="p3-territories">0</div>
-        <div class="stat-card-sub">Territoires</div>
-      </div>
-    </div>
-  </div>
+    <!-- HUD Bottom: Controls -->
+    <div id="hud-bottom">
+      <div class="hud-bottom-left">
+        <div id="section-diplo">
+          <div class="hud-section-title">Diplomatie</div>
+          <div id="diplo-embargo-warn" style="display:none;"></div>
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+            <button class="action-btn success" id="btn-open-diplo" style="flex:1; min-width:120px;">🤝 Négocier un traité</button>
+            <button class="action-btn" id="btn-end-diplo" style="flex:0;">⏭ Passer</button>
+          </div>
+          <div id="pact-list-panel"></div>
+          <div id="no-pacts-msg" style="font-size:0.6rem; opacity:0.6; text-align:center;">Aucun traité actif</div>
+        </div>
 
-  <div id="main">
-    <div id="map-container">
-      <div class="map-select-instr" id="map-select-instr">Cliquez sur un territoire sur la carte</div>
-    </div>
-
-    <div id="panel" class="wood-texture">
-      <!-- Diplomatie Résumé -->
-      <div class="panel-section" id="section-diplo">
-        <div class="panel-title">Diplomatie</div>
-        <div id="diplo-embargo-warn" style="display:none;"></div>
-        <button class="action-btn success" id="btn-open-diplo">🤝 Négocier un traité</button>
-        <button class="action-btn" id="btn-end-diplo" style="margin-top:0.5rem; background:rgba(0,0,0,0.2); border-color:rgba(212,160,23,0.3);">⏭ Passer la diplomatie</button>
-        <div id="pact-list-panel"></div>
-        <div id="no-pacts-msg" style="font-size:0.65rem; color:var(--parchment-shadow); text-align:center; opacity:0.6;">Aucun traité actif</div>
-      </div>
-
-      <!-- General Info -->
-      <div class="panel-section">
-        <div class="panel-title">Objectifs</div>
-        <div class="phase-steps">
+        <div class="phase-steps" style="margin:0.3rem 0;">
           <div class="phase-step" id="ps-diplo"></div>
           <div class="phase-step" id="ps-reinf"></div>
           <div class="phase-step" id="ps-attack"></div>
           <div class="phase-step" id="ps-move"></div>
         </div>
-        <div id="phase-desc" style="font-size:0.75rem; color:var(--text-parchment); min-height:3em;">...</div>
-        <button class="action-btn" id="btn-show-cards" style="margin-top:0.5rem; width:100%; font-size:0.65rem; opacity:0.8;">📜 Cartes (0)</button>
-      </div>
+        <div id="phase-desc" style="font-size:0.7rem; color:var(--text-parchment); min-height:2em;">...</div>
 
-      <!-- Territory Detail (Contextual) -->
-      <div class="panel-section" id="section-terr-info" style="display:none;">
-        <div class="panel-title">Territoire</div>
-        <div id="terr-detail"></div>
-      </div>
-
-      <!-- Reinforcements -->
-      <div class="panel-section" id="section-reinf" style="display:none;">
-        <div class="reinf-token-container">
+        <div id="section-reinf" style="display:none;">
           <div class="reinf-token" id="reinf-badge">--</div>
+          <button class="action-btn primary" id="btn-end-reinf" disabled style="margin-top:0.3rem;">Valider les renforts</button>
         </div>
-        <button class="action-btn primary" id="btn-end-reinf" disabled>Valider les renforts</button>
+
+        <div id="section-attack" style="display:none;">
+          <div id="attack-info" style="font-size:0.65rem; color:var(--parchment-shadow); margin-bottom:0.4rem;">Sélectionnez un de vos territoires (3+ armées) puis un territoire ennemi adjacent.</div>
+          <button class="action-btn danger" id="btn-end-attack">Terminer les attaques</button>
+        </div>
+
+        <div id="section-move" style="display:none;">
+          <div id="move-info" style="font-size:0.65rem; color:var(--parchment-shadow);"></div>
+          <button class="action-btn success" id="btn-end-turn" style="margin-top:0.3rem;">Fin du tour</button>
+        </div>
+
+        <div style="display:flex; gap:0.4rem; margin-top:0.3rem;">
+          <button class="action-btn" id="btn-show-cards" style="flex:1;">📜 Cartes (0)</button>
+        </div>
       </div>
 
-      <!-- Attack Actions -->
-      <div class="panel-section" id="section-attack" style="display:none;">
-        <div id="attack-info" style="font-size:0.7rem; color:var(--parchment-shadow); margin-bottom:0.8rem; line-height:1.2;">Sélectionnez un de vos territoires (3+ armées) puis un territoire ennemi adjacent.</div>
-        <button class="action-btn danger" id="btn-end-attack">Terminer les attaques</button>
-      </div>
-
-      <!-- Move Actions -->
-      <div class="panel-section" id="section-move" style="display:none;">
-        <div id="move-info" style="font-size:0.7rem; color:var(--parchment-shadow); margin-bottom:0.8rem; line-height:1.2;"></div>
-        <button class="action-btn success" id="btn-end-turn">Fin du tour</button>
-      </div>
-
-      <!-- History / Logs -->
-      <div class="panel-section" style="border-bottom:none;">
-        <div class="panel-title">Chronique de guerre</div>
+      <div class="hud-bottom-right">
+        <div class="hud-section-title">Chronique de guerre</div>
         <div id="log-entries"></div>
       </div>
-      
-      <!-- List of active sanctions -->
-      <div id="sanctions-display" style="padding:0 1rem 1rem 1rem;"></div>
-
-      <!-- Recent Dice Section -->
-      <div class="panel-section" id="section-dice" style="display:none;">
-        <div class="panel-title">Dernier Combat</div>
-        <div id="dice-display" class="dice-history-view"></div>
-      </div>
     </div>
+
+    <!-- Hidden panels (shown conditionally by JS) -->
+    <div id="section-terr-info" style="display:none;">
+      <div id="terr-detail"></div>
+    </div>
+    <div id="sanctions-display" style="display:none;"></div>
+    <div id="section-dice" style="display:none;">
+      <div class="hud-section-title">Dernier Combat</div>
+      <div id="dice-display" class="dice-history-view"></div>
+    </div>
+    <div id="continent-legend" style="display:none;"></div>
   </div>
 </div>
 
