@@ -9,11 +9,34 @@ const EXTRUDE_DEPTH = 0.8;
 
 const territoryMeshes = new Map();
 let territoryGroup;
+let maritimeLines = [];
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
 let currentHovered = null;
+
+function createTerritoryTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 4000; i++) {
+    const x = Math.random() * 128;
+    const y = Math.random() * 128;
+    const v = Math.floor(Math.random() * 30 + 225);
+    ctx.fillStyle = `rgb(${v},${v},${v})`;
+    ctx.fillRect(x, y, 2, 2);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1, 1);
+  return tex;
+}
+
+const territoryTex = createTerritoryTexture();
 
 export function buildTerritories(scene) {
   territoryGroup = new THREE.Group();
@@ -36,24 +59,36 @@ export function buildTerritories(scene) {
 
     const geo = new THREE.ExtrudeGeometry(shapesScaled, {
       depth: EXTRUDE_DEPTH,
-      bevelEnabled: false
+      bevelEnabled: true,
+      bevelThickness: 0.06,
+      bevelSize: 0.04,
+      bevelSegments: 4
     });
     geo.computeVertexNormals();
 
     const contName = Object.keys(CONTINENTS).find(c => CONTINENTS[c].territories.includes(name));
     const contColor = new THREE.Color(CONTINENTS[contName]?.color || '#888888');
 
-    const mat = new THREE.MeshLambertMaterial({
-      color: contColor
+    const mat = new THREE.MeshStandardMaterial({
+      color: contColor,
+      map: territoryTex,
+      roughness: 0.65,
+      metalness: 0.05,
+      envMapIntensity: 0.4
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.userData.territoryName = name;
     mesh.rotation.x = -Math.PI / 2;
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
     territoryGroup.add(mesh);
     territoryMeshes.set(name, mesh);
 
     const edges = new THREE.EdgesGeometry(geo);
-    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+    const line = new THREE.LineSegments(
+      edges,
+      new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 })
+    );
     line.rotation.x = -Math.PI / 2;
     territoryGroup.add(line);
   }
@@ -73,14 +108,37 @@ function parseSvgPath(pathData) {
 }
 
 function createOcean() {
-  const geo = new THREE.PlaneGeometry(30, 22);
-  const mat = new THREE.MeshLambertMaterial({
-    color: 0x1a3a5c
+  const group = new THREE.Group();
+
+  const geo = new THREE.PlaneGeometry(32, 24);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x0a2848,
+    roughness: 0.3,
+    metalness: 0.1,
+    transparent: true,
+    opacity: 0.95,
+    envMapIntensity: 0.3
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.y = -EXTRUDE_DEPTH - 0.1;
-  return mesh;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+
+  const geo2 = new THREE.PlaneGeometry(34, 26);
+  const mat2 = new THREE.MeshStandardMaterial({
+    color: 0x061830,
+    roughness: 1,
+    metalness: 0,
+    transparent: true,
+    opacity: 0.6
+  });
+  const mesh2 = new THREE.Mesh(geo2, mat2);
+  mesh2.rotation.x = -Math.PI / 2;
+  mesh2.position.y = -EXTRUDE_DEPTH - 0.3;
+  group.add(mesh2);
+
+  return group;
 }
 
 function addMaritimeRoutes(scene) {
@@ -88,22 +146,23 @@ function addMaritimeRoutes(scene) {
   const mat = new THREE.LineDashedMaterial({
     color: 0xd4a017,
     transparent: true,
-    opacity: 0.2,
-    dashSize: 0.3,
-    gapSize: 0.2
+    opacity: 0.4,
+    dashSize: 0.2,
+    gapSize: 0.15
   });
   MARITIME_ROUTES.forEach(([a, b]) => {
     const p1 = POSITIONS[a];
     const p2 = POSITIONS[b];
     if (!p1 || !p2) return;
     const pts = [
-      new THREE.Vector3((p1[0] - 500) * SCALE, 0.1, (p1[1] - 350) * SCALE),
-      new THREE.Vector3((p2[0] - 500) * SCALE, 0.1, (p2[1] - 350) * SCALE)
+      new THREE.Vector3((p1[0] - 500) * SCALE, 0.15, (p1[1] - 350) * SCALE),
+      new THREE.Vector3((p2[0] - 500) * SCALE, 0.15, (p2[1] - 350) * SCALE)
     ];
     const geo = new THREE.BufferGeometry().setFromPoints(pts);
     const line = new THREE.Line(geo, mat);
     line.computeLineDistances();
     scene.add(line);
+    maritimeLines.push(line);
   });
 }
 
@@ -149,7 +208,7 @@ export function handlePointerMove(event, camera, canvas) {
     if (name) {
       currentHovered = name;
       hit.material.emissive.setHex(0xffffff);
-      hit.material.emissiveIntensity = 0.15;
+      hit.material.emissiveIntensity = 0.25;
       canvas.style.cursor = 'pointer';
     }
   } else {

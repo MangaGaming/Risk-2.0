@@ -3,8 +3,8 @@ import { POSITIONS } from './config.js';
 import { EXTRUDE_DEPTH } from './map3d.js';
 
 const SCALE = 1 / 45;
-const PIECE_RADIUS = 0.3;
-const PIECE_HEIGHT = 0.4;
+const PIECE_RADIUS = 0.28;
+const PIECE_HEIGHT = 0.35;
 const MAX_VISIBLE = 12;
 
 const OFFSETS = [
@@ -20,7 +20,7 @@ const OFFSETS = [
 
 let pieceGroup;
 const pieceClusters = new Map();
-const sharedGeo = new THREE.CylinderGeometry(PIECE_RADIUS, PIECE_RADIUS * 1.2, PIECE_HEIGHT, 6);
+const sharedGeo = new THREE.CylinderGeometry(PIECE_RADIUS, PIECE_RADIUS * 1.15, PIECE_HEIGHT, 12);
 
 export function initPieces(scene) {
   pieceGroup = new THREE.Group();
@@ -50,9 +50,16 @@ export function syncPieces(state) {
 
     for (let i = 0; i < count; i++) {
       const [dx, dz] = OFFSETS[i];
-      const mat = new THREE.MeshLambertMaterial({ color: playerColor });
+      const mat = new THREE.MeshStandardMaterial({
+        color: playerColor,
+        roughness: 0.35,
+        metalness: 0.1,
+        envMapIntensity: 0.6
+      });
       const piece = new THREE.Mesh(sharedGeo, mat);
       piece.position.set(centerX + dx, EXTRUDE_DEPTH + PIECE_HEIGHT / 2, centerZ + dz);
+      piece.castShadow = true;
+      piece.receiveShadow = true;
       clusterGroup.add(piece);
     }
 
